@@ -1,22 +1,56 @@
 // src/app/providers.tsx
 "use client";
 
-import { useEffect, useRef } from "react";
+import React, { Suspense, useEffect, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import posthog from "posthog-js";
 
-export default function Providers({ children }: { children: React.ReactNode }) {
+/**
+ * ✅ Uses useSearchParams(), so it MUST be inside a <Suspense> boundary
+ * to avoid Next.js prerender errors on /_not-found and /404 during build.
+ */
+function PostHogPageViews() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
   // ✅ Prevent duplicate $pageview captures (dev/hydration edge cases)
   const lastUrlRef = useRef<string | null>(null);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!(posthog as any).__initialized) return;
+
+    const url =
+      window.location.origin +
+      pathname +
+      (searchParams?.toString() ? `?${searchParams.toString()}` : "");
+
+    // ✅ Skip duplicates
+    if (lastUrlRef.current === url) return;
+    lastUrlRef.current = url;
+
+    posthog.capture("$pageview", {
+      $current_url: url,
+      app: "PriceIQ",
+    });
+  }, [pathname, searchParams]);
+
+  return null;
+}
+
+export default function Providers({ children }: { children: React.ReactNode }) {
   // ✅ 1) Init once (browser-only) + expose for DevTools
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // prevent double-init in dev fast refresh
+    // ✅ Only run analytics in production (comment this block out if you want dev tracking too)
+    if (process.env.NODE_ENV !== "production") {
+      // Keep dev console clean, but leave a breadcrumb
+      console.info("[PostHog] Disabled (non-production environment)");
+      return;
+    }
+
+    // prevent double-init in dev fast refresh / strict mode
     if ((posthog as any).__initialized) return;
     (posthog as any).__initialized = true;
 
@@ -39,7 +73,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       // matches your snippet
       person_profiles: "identified_only",
 
-      // ✅ optional: keep local dev cleaner (turn off replay on localhost if you want)
+      // ✅ optional: keep session recording off if you ever enable dev tracking
       // disable_session_recording: window.location.hostname === "localhost",
     });
 
@@ -53,74 +87,14 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  // 1) if you are going to production and want to ignore local development stats in posthog, replace the above use effect with this
-// useEffect(() => {
-//   if (typeof window === "undefined") return;
+  return (
+    <>
+      {/* ✅ Required wrapper for useSearchParams() */}
+      <Suspense fallback={null}>
+        <PostHogPageViews />
+      </Suspense>
 
-//   // ✅ Only run analytics in production
-//   if (process.env.NODE_ENV !== "production") {
-//     console.info("[PostHog] Disabled (non-production environment)");
-//     return;
-//   }
-
-//   // Prevent double init (React StrictMode / Fast Refresh)
-//   if ((posthog as any).__initialized) return;
-//   (posthog as any).__initialized = true;
-
-//   const key = process.env.NEXT_PUBLIC_POSTHOG_KEY;
-//   const host = process.env.NEXT_PUBLIC_POSTHOG_HOST;
-
-//   if (!key) {
-//     console.warn("[PostHog] Missing NEXT_PUBLIC_POSTHOG_KEY");
-//     return;
-//   }
-
-//   posthog.init(key, {
-//     api_host: host || "https://app.posthog.com",
-
-//     // We handle routing manually
-//     capture_pageview: false,
-
-//     // Better identity model
-//     person_profiles: "identified_only",
-//   });
-
-//   // Optional sanity event
-//   posthog.capture("app_loaded", {
-//     app: "PriceIQ",
-//     env: process.env.NODE_ENV,
-//   });
-
-//   // Optional debugging access
-//   (window as any).posthog = posthog;
-// }, []);
-
-
-
-
-
-
-
-  // ✅ 2) Minimal SPA pageview tracking (less noisy than autocapture)
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!(posthog as any).__initialized) return;
-
-    const url =
-      window.location.origin +
-      pathname +
-      (searchParams?.toString() ? `?${searchParams.toString()}` : "");
-
-    // ✅ Skip duplicates
-    if (lastUrlRef.current === url) return;
-    lastUrlRef.current = url;
-
-    // This becomes your clean Pageview stream in PostHog
-    posthog.capture("$pageview", {
-      $current_url: url,
-      app: "PriceIQ",
-    });
-  }, [pathname, searchParams]);
-
-  return <>{children}</>;
+      {children}
+    </>
+  );
 }
