@@ -1,42 +1,273 @@
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* =========================================================
+   MILLION PIXEL BABY — GOLD LUXE DARK (Pro-grade)
+   - deep blacks
+   - champagne gold accent (not yellow)
+   - “foil edge” specular highlights
+   - consistent theme tokens for text/controls/pills
+   ========================================================= */
+
+:root {
+  /* Core */
+  --bg: 0 0 0;
+  --fg: 245 245 247;
+
+  /* Neutral text */
+  --muted: 210 210 220;
+  --muted2: 160 160 175;
+
+  /* Surfaces (warm graphite) */
+  --cardTop: 22 20 16;
+  --cardBot: 10 9 7;
+
+  /* Borders */
+  --border: 255 255 255;
+
+  /* Gold system (champagne > yellow) */
+  --gold: 212 175 55;      /* classic gold */
+  --champ: 255 227 160;    /* champagne highlight */
+  --ring: 212 175 55;
+
+  /* Shadow colors (keep neutral) */
+  --shadow: 0 0 0;
 }
 
 html,
 body {
-  max-width: 100vw;
-  overflow-x: hidden;
+  height: 100%;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  color: rgb(var(--fg));
+  background: rgb(var(--bg));
+  font-family: var(--font-geist-sans), system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-* {
-  box-sizing: border-box;
-  padding: 0;
+/* =========================================================
+   BACKGROUND — deep blacks + premium gold bloom + vignette
+   ========================================================= */
+
+.bg-premium {
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(1100px 650px at 18% -10%, rgba(var(--gold), 0.18), transparent 58%),
+    radial-gradient(900px 600px at 82% 0%, rgba(var(--champ), 0.12), transparent 62%),
+    radial-gradient(1200px 900px at 50% 112%, rgba(255, 255, 255, 0.05), transparent 65%),
+    linear-gradient(to bottom, rgb(0 0 0), rgb(0 0 0));
+}
+
+/* Vignette + top glow for depth */
+.bg-premium::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 55% at 50% 12%, rgba(255,255,255,0.10), transparent 60%),
+    radial-gradient(85% 70% at 50% 112%, rgba(0,0,0,0.86), transparent 55%);
+  opacity: 0.24;
+  z-index: 0;
+}
+
+/* Micro noise (very subtle) */
+.bg-premium::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.06;
+  z-index: 1;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.40'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+  mask-image: radial-gradient(60% 55% at 50% 20%, black 45%, transparent 80%);
+}
+
+/* =========================================================
+   SURFACES — glass + foil rim + professional shadowing
+   ========================================================= */
+
+.surface {
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(var(--cardTop), 0.88), rgba(var(--cardBot), 0.84));
+  border: 1px solid rgba(var(--border), 0.08);
+  border-radius: 24px;
+
+  box-shadow:
+    0 26px 85px rgba(0,0,0,0.72),
+    inset 0 1px 0 rgba(255,255,255,0.05),
+    inset 0 0 0 1px rgba(var(--gold), 0.07);
+
+  backdrop-filter: blur(14px);
+}
+
+/* “Foil edge” specular highlight (subtle, premium) */
+.surface::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+
+  background:
+    radial-gradient(700px 220px at 18% 0%, rgba(var(--champ), 0.10), transparent 55%),
+    linear-gradient(90deg,
+      rgba(var(--gold), 0.12),
+      transparent 22%,
+      transparent 78%,
+      rgba(var(--champ), 0.10)
+    );
+  opacity: 0.45;
+  mask-image: linear-gradient(to bottom, black 0%, black 52%, transparent 92%);
+}
+
+/* =========================================================
+   THEME TOKENS (USE THESE EVERYWHERE)
+   ========================================================= */
+
+.text-primary { color: rgb(var(--fg)); }
+.text-secondary { color: rgba(var(--fg), 0.74); }
+.text-muted { color: rgba(var(--fg), 0.56); }
+.text-muted2 { color: rgba(var(--fg), 0.45); }
+
+.text-gold { color: rgba(var(--champ), 0.92); }
+.text-gold-dim { color: rgba(var(--champ), 0.68); }
+
+.border-soft { border-color: rgba(255,255,255,0.10); }
+.border-softer { border-color: rgba(255,255,255,0.08); }
+.border-gold { border-color: rgba(var(--gold), 0.22); }
+.border-gold-soft { border-color: rgba(var(--gold), 0.14); }
+
+.hr-soft { height: 1px; background: rgba(255,255,255,0.10); }
+
+/* =========================================================
+   CONTROLS — premium inputs/selects (gold halo + rim light)
+   ========================================================= */
+
+.field {
+  position: relative;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(0,0,0,0.24);
+  border-radius: 16px;
+  transition: 180ms ease;
+}
+
+.field:hover {
+  border-color: rgba(var(--gold), 0.18);
+  background: rgba(0,0,0,0.30);
+}
+
+/* Focus halo */
+.field:focus-within {
+  border-color: rgba(var(--gold), 0.40);
+  box-shadow: 0 0 0 4px rgba(var(--ring), 0.16);
+}
+
+/* Tiny specular highlight */
+.field::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(600px 90px at 20% 0%, rgba(var(--champ), 0.08), transparent 55%);
+  opacity: 0.7;
+  mask-image: linear-gradient(to bottom, black 0%, black 44%, transparent 92%);
+}
+
+/* =========================================================
+   PILLS / BUTTONS — consistent premium chips
+   ========================================================= */
+
+.chip {
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.05);
+  transition: 180ms ease;
+}
+
+.chip:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(var(--gold), 0.18);
+}
+
+.chip-active {
+  border-color: rgba(var(--gold), 0.28);
+  background:
+    linear-gradient(180deg,
+      rgba(var(--gold), 0.16),
+      rgba(255,255,255,0.06)
+    );
+}
+
+/* Primary “gold” button style */
+.btn-gold {
+  border: 1px solid rgba(var(--gold), 0.30);
+  background:
+    linear-gradient(180deg, rgba(var(--champ), 0.16), rgba(var(--gold), 0.12));
+  color: rgba(var(--champ), 0.92);
+  box-shadow:
+    0 18px 55px rgba(0,0,0,0.55),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+  transition: 180ms ease;
+}
+
+.btn-gold:hover {
+  border-color: rgba(var(--gold), 0.45);
+  background:
+    linear-gradient(180deg, rgba(var(--champ), 0.20), rgba(var(--gold), 0.14));
+}
+
+/* =========================================================
+   SWITCHES + BADGES
+   ========================================================= */
+
+.switch-on {
+  border-color: rgba(var(--gold), 0.42);
+  background: rgba(var(--gold), 0.18);
+}
+.switch-off {
+  border-color: rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.05);
+}
+
+.badge-gold {
+  border: 1px solid rgba(var(--gold), 0.38);
+  background: rgba(var(--gold), 0.14);
+  color: rgba(var(--champ), 0.90);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.03),
+    0 10px 30px rgba(0,0,0,0.55);
+}
+
+/* Optional: gold text gradient for hero titles */
+.gold-title {
+  background: linear-gradient(90deg,
+    rgba(var(--champ), 0.96),
+    rgba(var(--gold), 0.96)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Native controls behave with dark UI */
+select {
+  color-scheme: dark;
+}
+
+/* Remove number spinners */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
   margin: 0;
 }
-
-a {
-  color: inherit;
-  text-decoration: none;
+input[type="number"] {
+  -moz-appearance: textfield;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
-}

@@ -1,66 +1,32 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+// src/app/page.tsx
+import { Suspense } from "react";
+import { Calculator } from "@/components/calculator/Calculator";
 
-export default function Home() {
+function CalculatorFallback() {
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.tsx file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-white/70">
+      Loading calculator…
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <main className="bg-premium min-h-screen text-white">
+      <div className="relative mx-auto max-w-6xl px-5 py-10 md:py-14">
+        <header className="mb-10">
+<h1 className="mt-5 max-w-6xl text-3xl font-extrabold tracking-tight md:text-5xl md:whitespace-nowrap">
+  PriceIQ.
+  <span className="block text-white/70">
+    See the real cost of getting paid.
+  </span>
+</h1>
+        </header>
+
+        <Suspense fallback={<CalculatorFallback />}>
+          <Calculator />
+        </Suspense>
+      </div>
+    </main>
   );
 }
