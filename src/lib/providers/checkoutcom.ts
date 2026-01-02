@@ -33,16 +33,16 @@ type CkoRate = { percent: number; fixed: number; label: string };
 
 const CHECKOUTCOM_RATES: Record<QuoteInput["region"], Record<string /* productId */, CkoRate>> = {
   UK: {
-    cards: { percent: 1.7, fixed: 0.2, label: "Checkout.com Cards (model)" },
-    marketplace: { percent: 2.0, fixed: 0.25, label: "Checkout.com Marketplace (model)" },
+    cards: { percent: 1.7, fixed: 0.2, label: "Checkout Cards (model)" },
+    marketplace: { percent: 2.0, fixed: 0.25, label: "Checkout Marketplace (model)" },
   },
   EU: {
-    cards: { percent: 1.8, fixed: 0.25, label: "Checkout.com Cards (model)" },
-    marketplace: { percent: 2.1, fixed: 0.3, label: "Checkout.com Marketplace (model)" },
+    cards: { percent: 1.8, fixed: 0.25, label: "Checkout Cards (model)" },
+    marketplace: { percent: 2.1, fixed: 0.3, label: "Checkout Marketplace (model)" },
   },
   US: {
-    cards: { percent: 2.4, fixed: 0.3, label: "Checkout.com Cards (model)" },
-    marketplace: { percent: 2.7, fixed: 0.35, label: "Checkout.com Marketplace (model)" },
+    cards: { percent: 2.4, fixed: 0.3, label: "Checkout Cards (model)" },
+    marketplace: { percent: 2.7, fixed: 0.35, label: "Checkout Marketplace (model)" },
   },
 };
 
@@ -89,7 +89,7 @@ function grossFromNet(params: {
 
 export const checkoutComProvider: Provider = {
   id: "checkoutcom",
-  label: "Checkout.com",
+  label: "Checkout",
   products: [
     {
       id: "cards",
@@ -185,7 +185,7 @@ export const checkoutComProvider: Provider = {
       fees: [
         {
           key: "provider_fee",
-          label: "Checkout.com fee",
+          label: "Checkout fee",
           amount: Number.isFinite(providerFee) ? providerFee : 0,
         },
         { key: "fx_fee", label: "FX fee", amount: Number.isFinite(fxFee) ? fxFee : 0 },

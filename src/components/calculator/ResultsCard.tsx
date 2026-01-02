@@ -233,7 +233,7 @@ function providerBrandFromLabel(label?: string) {
   if (s.includes("adyen")) return "Adyen";
   if (s.includes("braintree")) return "Braintree";
   if (s.includes("square")) return "Square";
-  if (s.includes("checkout.com") || s.includes("checkoutcom") || s.includes("checkout")) return "Checkout.com";
+  if (s.includes("checkout") || s.includes("checkoutcom") || s.includes("checkout")) return "Checkout";
   if (s.includes("worldpay")) return "Worldpay";
   if (s.includes("stripe")) return "Stripe";
   return label?.trim() ? label.trim() : "Provider";
@@ -1771,7 +1771,7 @@ export function ResultsCard(props: {
                           </td>
                         </tr>
                         <tr>
-                          <td className="px-3 py-2 font-medium text-white/80">Checkout.com</td>
+                          <td className="px-3 py-2 font-medium text-white/80">Checkout</td>
                           <td className="px-3 py-2">
                             <a
                               href="https://www.checkout.com/pricing"

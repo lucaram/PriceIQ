@@ -303,8 +303,8 @@ function presetBucketLabel(args: {
       id.includes("market") || label.includes("market");
 
     return isMarketplace
-      ? "Checkout.com Marketplace Presets"
-      : "Checkout.com Card Presets";
+      ? "Checkout Marketplace Presets"
+      : "Checkout Card Presets";
   }
 
   return "Presets";
@@ -642,7 +642,7 @@ function SegmentedProvider({
       {"\n\n"}
       <strong>Stripe</strong> uses your Stripe tier table.
       {"\n\n"}
-      <strong>PayPal</strong>, <strong>Adyen</strong>, and <strong>Checkout.com</strong> use their own fee models based on
+      <strong>PayPal</strong>, <strong>Adyen</strong>, and <strong>Checkout</strong> use their own fee models based on
       account and transaction type.
       {"\n\n"}
       <strong>Custom provider</strong> lets you label the provider while still using your chosen product bucket; please note that in this case fee % and fixed fee are set to 0 and if you want to change them please go to the Provider Fee Override section.
@@ -781,7 +781,7 @@ function ProviderProductSelect({
       {"\n"}
       <strong>Adyen</strong>: Cards or Platform
       {"\n"}
-      <strong>Checkout.com</strong>: Cards or Marketplace (platform)
+      <strong>Checkout</strong>: Cards or Marketplace (platform)
       {"\n\n"}
       Presets below are filtered to show <strong>only the presets relevant to the selected product</strong>.
     </>
@@ -1124,13 +1124,13 @@ function buildActiveModelHint(args: {
       return platformFeePercent > 0
         ? {
             tone: "info",
-            title: "Hint - Checkout.com: Cards processing",
+            title: "Hint - Checkout: Cards processing",
             text:
               "Cards processing is usually simple ecommerce. If you’re not taking a marketplace cut, set Platform fee % back to 0.",
           }
         : {
             tone: "info",
-            title: "Hint - Checkout.com: Cards processing",
+            title: "Hint - Checkout: Cards processing",
             text:
               "Cards processing is usually simple ecommerce. Platform fee % is often 0 unless you’re taking a marketplace cut.",
           };
@@ -1139,14 +1139,14 @@ function buildActiveModelHint(args: {
     if (platformFeePercent === 0) {
       return {
         tone: "info",
-        title: "Hint - Checkout.com: Marketplace",
+        title: "Hint - Checkout: Marketplace",
         text: "Marketplace flows usually include a platform fee. Consider setting Platform fee %.",
       };
     }
 
     return {
       tone: "info",
-      title: "Hint - Checkout.com: Marketplace",
+      title: "Hint - Checkout: Marketplace",
       text: "Platform fee % is enabled. Please consider enabling your marketplace/platform cut.",
     };
   }
@@ -1711,7 +1711,7 @@ const breakEvenTip = (
     <>
       Optional overrides for the <strong>provider fee model</strong> which is set in Pricing Tier field.
       {"\n\n"}
-      Leave blank to use the provider’s default math (Stripe tiers / PayPal / Adyen / Checkout.com models).
+      Leave blank to use the provider’s default math (Stripe tiers / PayPal / Adyen / Checkout models).
       {"\n"}
       Set a value to force the engine to use your override instead.
       {"\n\n"}
@@ -2008,7 +2008,7 @@ Configure pricing, fees and your economic assumptions.              </p>
 
                   <div className="grid gap-3">
                     <LabelRow
-  label="Scenario presets"
+  label="Presets"
   containerRef={cardRef}
   right={
     <div className="flex items-center gap-2">
