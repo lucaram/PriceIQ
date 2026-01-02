@@ -550,7 +550,7 @@ export function ResultsCard(props: {
     if (useReverse)
       return "This shows the customer price required to reach your target net outcome after fees with your chosen provider.";
 
-    return "Understand analysis, cost dynamics and profitability.";
+    return "Understand cost dynamics and profitability.";
   }, [useReverse, marginOn]);
 
   const hasTools = Boolean(breakEven) || Boolean(sensitivity) || Boolean(volumeOn);
@@ -1256,18 +1256,36 @@ export function ResultsCard(props: {
       </div>
 
       {/* Header */}
-      <div className="relative mb-10 flex justify-center text-center">
-        <div className="flex flex-col items-center">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full border border-amber-300/35 bg-amber-400/15 text-sm font-extrabold text-amber-200 shadow-[0_16px_40px_rgba(0,0,0,0.6)]">
-              2
-            </div>
-            <h2 className="text-lg font-bold text-white">Outcome</h2>
-          </div>
+<div className="relative mb-8 flex flex-col items-center">
+  
+  {/* Layered Ambient Glows */}
+  <div className="pointer-events-none absolute -top-12 h-32 w-[28rem] rounded-full bg-amber-500/15 blur-[100px]" />
+  <div className="pointer-events-none absolute top-0 h-px w-full max-w-2xl bg-gradient-to-r from-transparent via-amber-400/20 to-transparent" />
 
-          <p className="mt-2 max-w-md text-sm text-white/60">{subtitle}</p>
-        </div>
-      </div>
+  <div className="relative flex flex-col items-center text-center">
+    
+    {/* Title */}
+    <div className="space-y-2">
+      <h2 className="text-2xl font-black tracking-tighter text-white sm:text-4xl">
+        Outcome<span className="text-amber-400/80">.</span>
+      </h2>
+
+      {/* Subtitle */}
+      <p className="max-w-md text-[10px] font-medium uppercase tracking-[0.3em] text-amber-400/60">
+        {subtitle}
+      </p>
+    </div>
+
+    {/* Divider */}
+    <div className="relative mt-4 flex items-center justify-center">
+      <div className="h-[1px] w-12 bg-gradient-to-r from-transparent to-white/20" />
+      <div className="mx-3 h-1.5 w-1.5 rotate-45 border border-amber-400/40" />
+      <div className="h-[1px] w-12 bg-gradient-to-l from-transparent to-white/20" />
+    </div>
+
+  </div>
+</div>
+
 
       {/* ADVICE */}
       <div
