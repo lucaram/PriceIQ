@@ -27,14 +27,33 @@ export default function Page() {
           <ContactCta />
         </div>
 
-        <header className="mb-6 md:mb-10 text-center">
-          <h1 className="text-3xl font-extrabold tracking-tight md:text-5xl whitespace-nowrap">
-            PriceIQ.
-          </h1>
-          <p className="mt-1 text-lg text-white/70 md:text-2xl whitespace-nowrap">
-            See the real cost of getting paid.
-          </p>
-        </header>
+<header className="relative mb-4 flex flex-col items-center justify-center bg-transparent py-2 text-center md:mb-8">
+  <div className="relative flex flex-col items-center">
+    
+    {/* Title Container */}
+    <div className="relative inline-flex items-baseline">
+      <h1 className="text-5xl font-black tracking-tighter text-white md:text-7xl">
+        PriceIQ
+      </h1>
+      
+      {/* Tighter Positioning: 
+         - Changed -right-2 to right-0 for mobile 
+         - Changed -right-3 to -right-1 for desktop
+      */}
+      <span className="absolute right-0 bottom-[0.18em] h-3 w-3 translate-x-full rounded-[1px] bg-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.4)] md:h-4 md:w-4 md:-right-1" />
+    </div>
+
+    {/* Subtitle Section */}
+    <div className="mt-2 flex flex-col items-center">
+      <div className="mb-3 h-px w-20 bg-white/10" />
+      
+      <p className="whitespace-nowrap text-xl font-medium tracking-tight md:text-3xl">
+        <span className="text-white">See the real cost</span>{" "}
+        <span className="text-white/40">of getting paid.</span>
+      </p>
+    </div>
+  </div>
+</header>
 
         <Suspense fallback={<CalculatorFallback />}>
           <Calculator />
