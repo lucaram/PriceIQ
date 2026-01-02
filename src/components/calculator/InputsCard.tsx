@@ -641,10 +641,10 @@ function SegmentedProvider({
       Switch the payment provider used for the fee calculation.
       {"\n\n"}
       <strong>Stripe</strong> uses your Stripe tier table.
-      {"\n"}
+      {"\n\n"}
       <strong>PayPal</strong>, <strong>Adyen</strong>, and <strong>Checkout.com</strong> use their own fee models based on
       account and transaction type.
-      {"\n"}
+      {"\n\n"}
       <strong>Custom provider</strong> lets you label the provider while still using your chosen product bucket; please note that in this case fee % and fixed fee are set to 0 and if you want to change them please go to the Provider Fee Override section.
       {"\n\n"}
       Some controls (like <strong>Pricing tier</strong>) are <strong>Stripe-specific</strong>, so they won’t appear for
@@ -1612,9 +1612,16 @@ export function InputsCard(props: {
 
   const modeTip = (
     <>
-      <strong>Forward</strong>: enter customer price → see net.
-      {"\n"}
-      <strong>Reverse</strong>: enter target net → solve required customer charge.
+      <strong>Forward</strong>: Enter the price your customer pays.
+We calculate fees, taxes, and show exactly how much you keep.
+{"\n"}
+E.g.: Customer pays £100 via Stripe provider using a standard UK card → You receive £98.30 after fees.
+      {"\n\n"}
+      <strong>Reverse</strong>: Enter the net amount you want to earn.
+We calculate the price the customer must pay to reach that net amount.
+{"\n"}
+E.g.
+You want £100 net via Stripe provider using a standard UK card → customer pays £101.73.
     </>
   );
 
@@ -1632,23 +1639,63 @@ export function InputsCard(props: {
     </>
   );
 
-  const roundingTip = <>Rounds the final customer price (and optional psych pricing), then recalculates fees from that final charge.</>;
+const roundingTip = (
+  <>
+    <strong>Rounding adjusts the final customer price</strong> and then recalculates all fees from that value.
+    <br />
+    <br />
+
+    <strong>To 0.01</strong> — rounds to the nearest cent.  
+      {"\n"}
+    <em>Example:</em> 9.876 → 9.88
+      {"\n\n"}
+    <strong>To 0.01 + Psych (.99)</strong> — rounds, then applies psychological pricing.  
+     {"\n"}
+    <em>Example:</em> 10.03 → 9.99
+      {"\n\n"}
+    <strong>To 0.05</strong> — rounds to the nearest 5 cents.  
+      {"\n"}
+    <em>Example:</em> 9.83 → 9.85
+   {"\n\n"}
+    <strong>To 0.05 + Psych (.95)</strong> — rounds, then applies .95 pricing.  
+    {"\n"}
+    <em>Example:</em> 9.88 → 9.95
+    {"\n\n"}
+    <strong>To 0.10</strong> — rounds to the nearest 10 cents. 
+    {"\n"} 
+    <em>Example:</em> 9.94 → 9.90
+    {"\n\n"}
+    <strong>To 0.10 + Psych (.90)</strong> — rounds, then applies .90 pricing.  
+    <em>Example:</em> 9.97 → 9.90
+  </>
+);
 
   const platformFeeTip = <>Your own platform/marketplace fee percentage (separate from provider fees).</>;
 
   const platformAppliedOnTip = (
-    <>
-      What your platform fee % is calculated from.
-      {"\n\n"}
-      <strong>From gross</strong> = from customer charge.
-      {"\n"}
-      <strong>After provider</strong> = after the provider fee is removed (key name kept as <code>afterStripe</code> for now).
-    </>
-  );
+  <>
+    Defines what your platform fee is calculated from.
+    {"\n\n"}
+    <strong>From gross</strong> — fee is taken from the full customer price.  
+    <em>E.g.:</em> Customer pays £100 → platform fee applies to £100.
+    {"\n\n"}
+    <strong>After provider fee</strong> — fee is taken after payment provider costs.  
+    <em>E.g.:</em> Customer pays £100 → provider takes £3 → platform fee applies to £97.
+  </>
+);
+
 
   const vatTip = <>VAT is shown separately (not a provider fee) so you can see the tax component and net after VAT.</>;
 
-  const breakEvenTip = <>Computes the customer price required to hit a target net using your current settings.</>;
+const breakEvenTip = (
+  <>
+    Calculates the customer price required to reach a target net amount.
+    {"\n\n"}
+    This uses the same logic as <strong>pricing mode: reverse</strong>.
+    {"\n"}
+    When pricing mode is set to <strong>forward</strong>, break-even lets you directly compare your current price against the required one.
+  </>
+);
 
   const feeImpactTip = (
     <>
@@ -1662,11 +1709,15 @@ export function InputsCard(props: {
 
   const feeOverrideTip = (
     <>
-      Optional overrides for the <strong>provider fee model</strong>.
+      Optional overrides for the <strong>provider fee model</strong> which is set in Pricing Tier field.
       {"\n\n"}
       Leave blank to use the provider’s default math (Stripe tiers / PayPal / Adyen / Checkout.com models).
       {"\n"}
       Set a value to force the engine to use your override instead.
+      {"\n\n"}
+      E.g. user selects Stripe provider with Pricing Tier set to Standard UK card, where stripe fee is 1.5% + fixed fee of £0.20.
+      {"\n"}
+      Then in the section Provider Fee Override the user can change the Stripe fee % from 1.5% to 2% and the fixed fee from £0.20 to £0.35.
     </>
   );
 
@@ -1979,12 +2030,11 @@ Configure pricing, fees and your economic assumptions.              </p>
             {"\n\n"}
             This dropdown is filtered to show <strong>only</strong>:
             {"\n"}• <strong>No preset</strong>
-            {"\n"}• The <strong>4 presets</strong> for your product bucket:{" "}
-            <strong>{presetTag === "connect" ? "Connect" : "Cards"}</strong>
+            {"\n"}• The <strong>4 presets</strong> for your selected product
             {"\n\n"}
             Presets can change: FX, platform fee, fee base, mode, rounding, psych pricing.
             {"\n"}
-            They don’t change: Region, price/target, pricing tier, VAT, or tools toggles.
+            They don’t change: Region, price/target, pricing tier, VAT, or advanced tools toggles.
           </>
         }
         containerRef={cardRef}
@@ -2356,7 +2406,7 @@ Configure pricing, fees and your economic assumptions.              </p>
                 <InfoTip
                   text={
                     <>
-                      Optional fixed fee override (e.g. 0.20).
+                      Optional fixed fee override (e.g. 0.35 for Stripe Standard UK card).
                       {"\n\n"}
                       Leave blank to use the provider’s default fixed fee.
                     </>
@@ -2781,7 +2831,7 @@ Configure pricing, fees and your economic assumptions.              </p>
                         label="Refund %"
                         tip={
                           <>
-                            Percentage of transactions that refund (or chargeback) per month.
+                            Percentage of transactions that refund per month.
                             {"\n\n"}
                             This is a simple top-line adjustment for projection totals.
                           </>
