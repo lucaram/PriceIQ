@@ -1796,12 +1796,12 @@ export function InputsCard(props: {
               <div className="flex h-8 w-8 items-center justify-center rounded-full border border-amber-300/35 bg-amber-400/15 text-sm font-extrabold text-amber-200 shadow-[0_16px_40px_rgba(0,0,0,0.6)]">
                 1
               </div>
-              <h2 className="text-lg font-bold text-white">Inputs</h2>
+              <h2 className="text-lg font-bold text-white">Decisions</h2>
             </div>
 
             <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
               <p className="max-w-md text-sm text-white/60">
-Understand how pricing decisions impact your earnings.              </p>
+Configure pricing, fees and your economic assumptions.              </p>
             </div>
           </div>
         </div>
