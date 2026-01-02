@@ -757,7 +757,7 @@ function phCapture(name: string, props?: Record<string, any>, cooldownMs = 400) 
 
         // volume defaults (aligned with ResultsCard tier model)
         volumeOn: false as any,
-        volumeTxPerMonth: 0 as any,
+        volumeTxPerMonth: 1 as any,
         volumeRefundRatePct: 0 as any,
         volumeTiers: [{ id: "t1", sharePct: 100, price: 10, fxPercent: 0 }] as any,
       } as any),
@@ -788,7 +788,7 @@ function phCapture(name: string, props?: Record<string, any>, cooldownMs = 400) 
 
       // volume defaults
       volumeOn: false as any,
-      volumeTxPerMonth: 0 as any,
+      volumeTxPerMonth: 1 as any,
       volumeRefundRatePct: 0 as any,
       volumeTiers: [{ id: "t1", sharePct: 100, price: 10, fxPercent: 0 }] as any,
     } as any);
