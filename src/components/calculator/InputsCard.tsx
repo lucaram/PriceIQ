@@ -2042,198 +2042,248 @@ Configure pricing, fees and your economic assumptions.              </p>
           <GoldDivider />
 
           {/* ✅ PRICING */}
-          {sec.basics.visible || sec.pricing.visible ? (
-            <div
-              className={[
-                "rounded-3xl border border-white/18 bg-black/22 p-5",
-                "shadow-[0_18px_70px_rgba(0,0,0,0.72)]",
-              ].join(" ")}
-            >
-              <CollapsibleHeader
-                title="Pricing"
-                open={openBasics}
-                setOpen={setOpenBasics}
-                analyticsKey="pricing"
-                onToggle={onSectionToggle}
+{sec.basics.visible || sec.pricing.visible ? (
+  <div
+    className={[
+      "rounded-3xl border border-white/18 bg-black/22 p-5",
+      "shadow-[0_18px_70px_rgba(0,0,0,0.72)]",
+    ].join(" ")}
+  >
+    <CollapsibleHeader
+      title="Pricing"
+      open={openBasics}
+      setOpen={setOpenBasics}
+      analyticsKey="pricing"
+      onToggle={onSectionToggle}
+    />
+
+    {openBasics ? (
+      <>
+        {/* Optional helper */}
+        {sec.basics.helper ? (
+          <div className="mb-4">
+            <Banner
+              tone={sec.basics.helper.tone}
+              title={sec.basics.helper.title}
+              text={sec.basics.helper.text}
+            />
+          </div>
+        ) : sec.pricing.helper ? (
+          <div className="mb-4">
+            <Banner
+              tone={sec.pricing.helper.tone}
+              title={sec.pricing.helper.title}
+              text={sec.pricing.helper.text}
+            />
+          </div>
+        ) : null}
+
+        {/* ===== Row 1: Region / Pricing tier / Mode ===== */}
+        {sec.basics.visible ? (
+          <div
+            className={["grid gap-5", showPricingTier ? "md:grid-cols-3" : "md:grid-cols-2"].join(
+              " "
+            )}
+          >
+            <div>
+              <LabelRow label="Region" tip={regionTip} containerRef={cardRef} />
+              <FieldShell disabled={!ctrl.region.enabled}>
+                <select
+                  disabled={!ctrl.region.enabled}
+                  value={region}
+                  onChange={(e) => {
+                    phFirstTouch("region");
+                    phCapture("inputs_region_changed", { next: e.target.value }, 0);
+                    clearPreset();
+                    setRegion(e.target.value as Region);
+                  }}
+                  className="relative z-10 w-full bg-transparent px-3.5 text-[13px] text-white outline-none
+                    [color-scheme:dark]
+                    [&>option]:bg-zinc-900 [&>option]:text-white disabled:cursor-not-allowed"
+                >
+                  <option value="UK">UK (GBP)</option>
+                  <option value="EU">EU (EUR)</option>
+                  <option value="US">US (USD)</option>
+                </select>
+              </FieldShell>
+              <DisabledHint text={!ctrl.region.enabled ? ctrl.region.disabledReason : undefined} />
+            </div>
+
+            {showPricingTier ? (
+              <div>
+                <LabelRow label="Pricing tier" tip={pricingTierTip} containerRef={cardRef} />
+                <FieldShell disabled={!ctrl.pricingTier.enabled}>
+                  <select
+                    disabled={!ctrl.pricingTier.enabled}
+                    value={pricingId}
+                    onChange={(e) => {
+                      phFirstTouch("pricing_tier");
+                      phCapture("inputs_pricing_tier_changed", { next: e.target.value }, 0);
+                      clearPreset();
+                      setPricingId(e.target.value);
+                    }}
+                    className="relative z-10 w-full bg-transparent px-3.5 text-[13px] text-white outline-none
+                      [color-scheme:dark]
+                      [&>option]:bg-zinc-900 [&>option]:text-white disabled:cursor-not-allowed"
+                  >
+                    {options.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.label} — {o.percent}% + {o.currencySymbol}
+                        {o.fixed.toFixed(2)}
+                      </option>
+                    ))}
+                  </select>
+                </FieldShell>
+                <DisabledHint
+                  text={!ctrl.pricingTier.enabled ? ctrl.pricingTier.disabledReason : undefined}
+                />
+              </div>
+            ) : null}
+
+            <div>
+              <LabelRow label="Mode" tip={modeTip} containerRef={cardRef} />
+              <SegmentedMode
+                useReverse={useReverse}
+                setUseReverse={(v) => {
+                  phFirstTouch("mode");
+                  phCapture("inputs_mode_changed", { next: v ? "reverse" : "forward" }, 0);
+                  setUseReverse(v);
+                }}
+                onUserEdit={() => {
+                  phFirstTouch("mode");
+                  clearPreset();
+                }}
+                disabled={!ctrl.mode.enabled}
+              />
+              <DisabledHint text={!ctrl.mode.enabled ? ctrl.mode.disabledReason : undefined} />
+            </div>
+          </div>
+        ) : null}
+
+        {/* Divider */}
+        {sec.basics.visible && sec.pricing.visible ? <MiniDivider /> : null}
+
+        {/* ===== Row 2: Price / FX / Rounding ===== */}
+        {sec.pricing.visible ? (
+          <div className="grid gap-5 md:grid-cols-3">
+            <div>
+              {/* ✅ FIXED: same LabelRow style + badge rendered via `right` (no children) */}
+              <LabelRow
+                label={priceFieldLabel}
+                tip={priceFieldTip}
+                containerRef={cardRef}
+                right={
+                  ctrl.amountOrTarget.badge ? (
+                    <BadgePill text={ctrl.amountOrTarget.badge} tone="muted" />
+                  ) : null
+                }
               />
 
-              {openBasics ? (
-                <>
-                  {/* Optional helper */}
-                  {sec.basics.helper ? (
-                    <div className="mb-4">
-                      <Banner tone={sec.basics.helper.tone} title={sec.basics.helper.title} text={sec.basics.helper.text} />
-                    </div>
-                  ) : sec.pricing.helper ? (
-                    <div className="mb-4">
-                      <Banner tone={sec.pricing.helper.tone} title={sec.pricing.helper.title} text={sec.pricing.helper.text} />
-                    </div>
-                  ) : null}
-
-                  {/* ===== Row 1: Region / Pricing tier / Mode ===== */}
-                  {sec.basics.visible ? (
-                    <div className={["grid gap-5", showPricingTier ? "md:grid-cols-3" : "md:grid-cols-2"].join(" ")}>
-                      <div>
-                        <LabelRow label="Region" tip={regionTip} containerRef={cardRef} />
-                        <FieldShell disabled={!ctrl.region.enabled}>
-                          <select
-                            disabled={!ctrl.region.enabled}
-                            value={region}
-                            onChange={(e) => {
-                              phFirstTouch("region");
-                              phCapture("inputs_region_changed", { next: e.target.value }, 0);
-                              clearPreset();
-                              setRegion(e.target.value as Region);
-                            }}
-                            className="relative z-10 w-full bg-transparent px-3.5 text-[13px] text-white outline-none
-                             [color-scheme:dark]
-                             [&>option]:bg-zinc-900 [&>option]:text-white disabled:cursor-not-allowed"
-                          >
-                            <option value="UK">UK (GBP)</option>
-                            <option value="EU">EU (EUR)</option>
-                            <option value="US">US (USD)</option>
-                          </select>
-                        </FieldShell>
-                        <DisabledHint text={!ctrl.region.enabled ? ctrl.region.disabledReason : undefined} />
-                      </div>
-
-                      {showPricingTier ? (
-                        <div>
-                          <LabelRow label="Pricing tier" tip={pricingTierTip} containerRef={cardRef} />
-                          <FieldShell disabled={!ctrl.pricingTier.enabled}>
-                            <select
-                              disabled={!ctrl.pricingTier.enabled}
-                              value={pricingId}
-                              onChange={(e) => {
-                                phFirstTouch("pricing_tier");
-                                phCapture("inputs_pricing_tier_changed", { next: e.target.value }, 0);
-                                clearPreset();
-                                setPricingId(e.target.value);
-                              }}
-                              className="relative z-10 w-full bg-transparent px-3.5 text-[13px] text-white outline-none
-                               [color-scheme:dark]
-                               [&>option]:bg-zinc-900 [&>option]:text-white disabled:cursor-not-allowed"
-                            >
-                              {options.map((o) => (
-                                <option key={o.id} value={o.id}>
-                                  {o.label} — {o.percent}% + {o.currencySymbol}
-                                  {o.fixed.toFixed(2)}
-                                </option>
-                              ))}
-                            </select>
-                          </FieldShell>
-                          <DisabledHint text={!ctrl.pricingTier.enabled ? ctrl.pricingTier.disabledReason : undefined} />
-                        </div>
-                      ) : null}
-
-                      <div>
-                        <LabelRow label="Mode" tip={modeTip} containerRef={cardRef} />
-                        <SegmentedMode
-                          useReverse={useReverse}
-                          setUseReverse={(v) => {
-                            phFirstTouch("mode");
-                            phCapture("inputs_mode_changed", { next: v ? "reverse" : "forward" }, 0);
-                            setUseReverse(v);
-                          }}
-                          onUserEdit={() => {
-                            phFirstTouch("mode");
-                            clearPreset();
-                          }}
-                          disabled={!ctrl.mode.enabled}
-                        />
-                        <DisabledHint text={!ctrl.mode.enabled ? ctrl.mode.disabledReason : undefined} />
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {/* Divider */}
-                  {sec.basics.visible && sec.pricing.visible ? <MiniDivider /> : null}
-
-                  {/* ===== Row 2: Price / FX / Rounding ===== */}
-                  {sec.pricing.visible ? (
-                    <div className="grid gap-5 md:grid-cols-3">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <LabelRow label={priceFieldLabel} tip={priceFieldTip} containerRef={cardRef} />
-                          {ctrl.amountOrTarget.badge ? <BadgePill text={ctrl.amountOrTarget.badge} tone="muted" /> : null}
-                        </div>
-
-                        <MoneyField
-                          value={isReverseMode ? targetNet : amount}
-                          onChange={(n) => {
-                            phFirstTouch("price_or_target");
-                            phCapture("inputs_amount_or_target_changed", { value: n, field: isReverseMode ? "targetNet" : "amount" }, 400);
-                            clearPreset();
-                            if (isReverseMode) setTargetNet(n);
-                            else setAmount(n);
-                          }}
-                          ariaLabel={priceFieldLabel}
-                          disabled={!ctrl.amountOrTarget.enabled}
-                        />
-                        <DisabledHint text={!ctrl.amountOrTarget.enabled ? ctrl.amountOrTarget.disabledReason : undefined} />
-                      </div>
-
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <LabelRow label="FX fee %" tip={fxTip} containerRef={cardRef} />
-                          {ctrl.fxPercent.badge ? <BadgePill text={ctrl.fxPercent.badge} tone="muted" /> : null}
-                        </div>
-
-                        <UnitField
-                          value={Number.isFinite(fxPercent) ? Math.max(0, fxPercent) : 0}
-                          onChange={(n) => {
-                            phFirstTouch("fx");
-                            phCapture("inputs_fx_changed", { value: n }, 400);
-                            clearPreset();
-                            const safe = Number.isFinite(n) ? Math.max(0, n) : 0;
-                            setFxPercent(safe);
-                          }}
-                          ariaLabel="FX conversion percentage"
-                          disabled={!ctrl.fxPercent.enabled}
-                        />
-                        <DisabledHint text={!ctrl.fxPercent.enabled ? ctrl.fxPercent.disabledReason : undefined} />
-                      </div>
-
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <LabelRow label="Rounding" tip={roundingTip} containerRef={cardRef} />
-                          {ctrl.rounding.badge ? <BadgePill text={ctrl.rounding.badge} tone="muted" /> : null}
-                        </div>
-
-                        <FieldShell disabled={!ctrl.rounding.enabled}>
-                          <select
-                            disabled={!ctrl.rounding.enabled}
-                            value={`${roundingKey}|${psychPriceOn ? "1" : "0"}`}
-                            onChange={(e) => {
-                              phFirstTouch("rounding");
-                              const [stepRaw, psychRaw] = e.target.value.split("|");
-                              phCapture("inputs_rounding_changed", { step: stepRaw, psych: psychRaw === "1" }, 0);
-                              clearPreset();
-                              setRoundingStep(toRoundingStep(stepRaw, roundingStep));
-                              setPsychPriceOn(psychRaw === "1");
-                            }}
-                            className="relative z-10 w-full bg-transparent px-3.5 text-[13px] text-white outline-none
-                             [color-scheme:dark]
-                             [&>option]:bg-zinc-900 [&>option]:text-white disabled:cursor-not-allowed"
-                          >
-                            <option value="0.01|0">To 0.01</option>
-                            <option value="0.01|1">To 0.01 + Psych (.99)</option>
-
-                            <option value="0.05|0">To 0.05</option>
-                            <option value="0.05|1">To 0.05 + Psych (.95)</option>
-
-                            <option value="0.1|0">To 0.10</option>
-                            <option value="0.1|1">To 0.10 + Psych (.90)</option>
-                          </select>
-                        </FieldShell>
-                        <DisabledHint text={!ctrl.rounding.enabled ? ctrl.rounding.disabledReason : undefined} />
-                      </div>
-                    </div>
-                  ) : null}
-                </>
-              ) : null}
+              <MoneyField
+                value={isReverseMode ? targetNet : amount}
+                onChange={(n) => {
+                  phFirstTouch("price_or_target");
+                  phCapture(
+                    "inputs_amount_or_target_changed",
+                    { value: n, field: isReverseMode ? "targetNet" : "amount" },
+                    400
+                  );
+                  clearPreset();
+                  if (isReverseMode) setTargetNet(n);
+                  else setAmount(n);
+                }}
+                ariaLabel={priceFieldLabel}
+                disabled={!ctrl.amountOrTarget.enabled}
+              />
+              <DisabledHint
+                text={!ctrl.amountOrTarget.enabled ? ctrl.amountOrTarget.disabledReason : undefined}
+              />
             </div>
-          ) : null}
+
+            <div>
+              {/* ✅ FIXED: same LabelRow style + badge via `right` */}
+              <LabelRow
+                label="FX fee %"
+                tip={fxTip}
+                containerRef={cardRef}
+                right={
+                  ctrl.fxPercent.badge ? (
+                    <BadgePill text={ctrl.fxPercent.badge} tone="muted" />
+                  ) : null
+                }
+              />
+
+              <UnitField
+                value={Number.isFinite(fxPercent) ? Math.max(0, fxPercent) : 0}
+                onChange={(n) => {
+                  phFirstTouch("fx");
+                  phCapture("inputs_fx_changed", { value: n }, 400);
+                  clearPreset();
+                  const safe = Number.isFinite(n) ? Math.max(0, n) : 0;
+                  setFxPercent(safe);
+                }}
+                ariaLabel="FX conversion percentage"
+                disabled={!ctrl.fxPercent.enabled}
+              />
+              <DisabledHint
+                text={!ctrl.fxPercent.enabled ? ctrl.fxPercent.disabledReason : undefined}
+              />
+            </div>
+
+            <div>
+              {/* ✅ FIXED: same LabelRow style + badge via `right` */}
+              <LabelRow
+                label="Rounding"
+                tip={roundingTip}
+                containerRef={cardRef}
+                right={
+                  ctrl.rounding.badge ? (
+                    <BadgePill text={ctrl.rounding.badge} tone="muted" />
+                  ) : null
+                }
+              />
+
+              <FieldShell disabled={!ctrl.rounding.enabled}>
+                <select
+                  disabled={!ctrl.rounding.enabled}
+                  value={`${roundingKey}|${psychPriceOn ? "1" : "0"}`}
+                  onChange={(e) => {
+                    phFirstTouch("rounding");
+                    const [stepRaw, psychRaw] = e.target.value.split("|");
+                    phCapture(
+                      "inputs_rounding_changed",
+                      { step: stepRaw, psych: psychRaw === "1" },
+                      0
+                    );
+                    clearPreset();
+                    setRoundingStep(toRoundingStep(stepRaw, roundingStep));
+                    setPsychPriceOn(psychRaw === "1");
+                  }}
+                  className="relative z-10 w-full bg-transparent px-3.5 text-[13px] text-white outline-none
+                    [color-scheme:dark]
+                    [&>option]:bg-zinc-900 [&>option]:text-white disabled:cursor-not-allowed"
+                >
+                  <option value="0.01|0">To 0.01</option>
+                  <option value="0.01|1">To 0.01 + Psych (.99)</option>
+
+                  <option value="0.05|0">To 0.05</option>
+                  <option value="0.05|1">To 0.05 + Psych (.95)</option>
+
+                  <option value="0.1|0">To 0.10</option>
+                  <option value="0.1|1">To 0.10 + Psych (.90)</option>
+                </select>
+              </FieldShell>
+              <DisabledHint
+                text={!ctrl.rounding.enabled ? ctrl.rounding.disabledReason : undefined}
+              />
+            </div>
+          </div>
+        ) : null}
+      </>
+    ) : null}
+  </div>
+) : null}
+
 
           {/* ✅ PROVIDER FEE OVERRIDE */}
           <div
@@ -2323,137 +2373,186 @@ Configure pricing, fees and your economic assumptions.              </p>
             ) : null}
           </div>
 
-          {/* ✅ PLATFORM */}
-          {sec.platform.visible ? (
-            <div
-              className={[
-                "rounded-3xl border border-white/18 bg-black/18 p-5",
-                "shadow-[0_18px_70px_rgba(0,0,0,0.72)]",
-              ].join(" ")}
-            >
-              <CollapsibleHeader
-                title="Platform"
-                open={openPlatform}
-                setOpen={setOpenPlatform}
-                analyticsKey="platform"
-                onToggle={onSectionToggle}
-              />
-              {openPlatform ? (
-                <>
-                  {sec.platform.helper ? (
-                    <div className="mb-4">
-                      <Banner tone={sec.platform.helper.tone} title={sec.platform.helper.title} text={sec.platform.helper.text} />
-                    </div>
-                  ) : null}
+         {/* ✅ PLATFORM */}
+{sec.platform.visible ? (
+  <div
+    className={[
+      "rounded-3xl border border-white/18 bg-black/18 p-5",
+      "shadow-[0_18px_70px_rgba(0,0,0,0.72)]",
+    ].join(" ")}
+  >
+    <CollapsibleHeader
+      title="Platform"
+      open={openPlatform}
+      setOpen={setOpenPlatform}
+      analyticsKey="platform"
+      onToggle={onSectionToggle}
+    />
 
-                  <div className="grid gap-5 md:grid-cols-2 items-start">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <LabelRow label="Platform fee" tip={platformFeeTip} containerRef={cardRef} />
-                        {ctrl.platformFeePercent.badge ? <BadgePill text={ctrl.platformFeePercent.badge} tone="success" /> : null}
-                      </div>
+    {openPlatform ? (
+      <>
+        {sec.platform.helper ? (
+          <div className="mb-4">
+            <Banner
+              tone={sec.platform.helper.tone}
+              title={sec.platform.helper.title}
+              text={sec.platform.helper.text}
+            />
+          </div>
+        ) : null}
 
-                      <UnitField
-                        value={platformFeePercent}
-                        onChange={(n) => {
-                          phFirstTouch("platform");
-                          phCapture("inputs_platform_fee_changed", { value: n }, 400);
-                          clearPreset();
-                          setPlatformFeePercent(n);
-                        }}
-                        ariaLabel="Platform fee percentage"
-                        disabled={!ctrl.platformFeePercent.enabled}
-                      />
-                      <DisabledHint text={!ctrl.platformFeePercent.enabled ? ctrl.platformFeePercent.disabledReason : undefined} />
-                    </div>
+        <div className="grid gap-5 md:grid-cols-2 items-start">
+          <div>
+            {/* ✅ FIXED: LabelRow spans full width, "i" goes far right, badge via right */}
+            <LabelRow
+              label="Platform fee"
+              tip={platformFeeTip}
+              containerRef={cardRef}
+              right={
+                ctrl.platformFeePercent.badge ? (
+                  <BadgePill text={ctrl.platformFeePercent.badge} tone="success" />
+                ) : null
+              }
+            />
 
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <LabelRow label="Applied on" tip={platformAppliedOnTip} containerRef={cardRef} />
-                        {ctrl.platformFeeBase.badge ? <BadgePill text={ctrl.platformFeeBase.badge} tone="info" /> : null}
-                      </div>
+            <UnitField
+              value={platformFeePercent}
+              onChange={(n) => {
+                phFirstTouch("platform");
+                phCapture("inputs_platform_fee_changed", { value: n }, 400);
+                clearPreset();
+                setPlatformFeePercent(n);
+              }}
+              ariaLabel="Platform fee percentage"
+              disabled={!ctrl.platformFeePercent.enabled}
+            />
+            <DisabledHint
+              text={
+                !ctrl.platformFeePercent.enabled
+                  ? ctrl.platformFeePercent.disabledReason
+                  : undefined
+              }
+            />
+          </div>
 
-                      <FieldShell disabled={!ctrl.platformFeeBase.enabled}>
-                        <select
-                          disabled={!ctrl.platformFeeBase.enabled}
-                          value={platformFeeBase}
-                          onChange={(e) => {
-                            phFirstTouch("platform");
-                            phCapture("inputs_platform_base_changed", { value: e.target.value }, 0);
-                            clearPreset();
-                            setPlatformFeeBase(e.target.value as PlatformFeeBase);
-                          }}
-                          className="relative z-10 w-full bg-transparent px-3.5 text-[13px] text-white outline-none
-                                     [color-scheme:dark]
-                                     [&>option]:bg-zinc-900 [&>option]:text-white disabled:cursor-not-allowed"
-                        >
-                          <option value="gross">From gross</option>
-                          <option value="afterStripe">After provider fee</option>
-                        </select>
-                      </FieldShell>
-                      <DisabledHint text={!ctrl.platformFeeBase.enabled ? ctrl.platformFeeBase.disabledReason : undefined} />
-                    </div>
+          <div>
+            {/* ✅ FIXED: LabelRow spans full width, "i" goes far right, badge via right */}
+            <LabelRow
+              label="Applied on"
+              tip={platformAppliedOnTip}
+              containerRef={cardRef}
+              right={
+                ctrl.platformFeeBase.badge ? (
+                  <BadgePill text={ctrl.platformFeeBase.badge} tone="info" />
+                ) : null
+              }
+            />
 
-                    <div />
-                  </div>
-                </>
-              ) : null}
-            </div>
-          ) : null}
+            <FieldShell disabled={!ctrl.platformFeeBase.enabled}>
+              <select
+                disabled={!ctrl.platformFeeBase.enabled}
+                value={platformFeeBase}
+                onChange={(e) => {
+                  phFirstTouch("platform");
+                  phCapture("inputs_platform_base_changed", { value: e.target.value }, 0);
+                  clearPreset();
+                  setPlatformFeeBase(e.target.value as PlatformFeeBase);
+                }}
+                className="relative z-10 w-full bg-transparent px-3.5 text-[13px] text-white outline-none
+                  [color-scheme:dark]
+                  [&>option]:bg-zinc-900 [&>option]:text-white disabled:cursor-not-allowed"
+              >
+                <option value="gross">From gross</option>
+                <option value="afterStripe">After provider fee</option>
+              </select>
+            </FieldShell>
+
+            <DisabledHint
+              text={
+                !ctrl.platformFeeBase.enabled ? ctrl.platformFeeBase.disabledReason : undefined
+              }
+            />
+          </div>
+
+          <div />
+        </div>
+      </>
+    ) : null}
+  </div>
+) : null}
+
 
           {/* ✅ TAX (VAT) */}
-          {sec.tax.visible ? (
-            <div
-              className={[
-                "rounded-3xl border border-white/18 bg-black/18 p-5",
-                "shadow-[0_18px_70px_rgba(0,0,0,0.72)]",
-              ].join(" ")}
-            >
-              <CollapsibleHeader
-                title="Tax"
-                open={openTax}
-                setOpen={setOpenTax}
-                analyticsKey="tax"
-                onToggle={onSectionToggle}
-              />
-              {openTax ? (
-                <>
-                  {sec.tax.helper ? (
-                    <div className="mb-4">
-                      <Banner tone={sec.tax.helper.tone} title={sec.tax.helper.title} text={sec.tax.helper.text} />
-                    </div>
-                  ) : null}
+{sec.tax.visible ? (
+  <div
+    className={[
+      "rounded-3xl border border-white/18 bg-black/18 p-5",
+      "shadow-[0_18px_70px_rgba(0,0,0,0.72)]",
+    ].join(" ")}
+  >
+    <CollapsibleHeader
+      title="Tax"
+      open={openTax}
+      setOpen={setOpenTax}
+      analyticsKey="tax"
+      onToggle={onSectionToggle}
+    />
 
-                  <div className="grid gap-5 md:grid-cols-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <LabelRow label="VAT %" tip={vatTip} containerRef={cardRef} />
-                        {ctrl.vatPercent.badge ? <BadgePill text={ctrl.vatPercent.badge} tone="info" /> : null}
-                      </div>
+    {openTax ? (
+      <>
+        {sec.tax.helper ? (
+          <div className="mb-4">
+            <Banner
+              tone={sec.tax.helper.tone}
+              title={sec.tax.helper.title}
+              text={sec.tax.helper.text}
+            />
+          </div>
+        ) : null}
 
-                      <UnitField
-                        value={Number.isFinite(vatPercent) ? vatPercent : 0}
-                        onChange={(n) => {
-                          phFirstTouch("vat");
-                          phCapture("inputs_vat_changed", { value: n }, 400);
-                          clearPreset();
-                          const safe = Number.isFinite(n) ? Math.max(0, n) : 0;
-                          setVatPercent(safe);
-                        }}
-                        ariaLabel="VAT percentage"
-                        disabled={!ctrl.vatPercent.enabled}
-                      />
-                      <DisabledHint text={!ctrl.vatPercent.enabled ? ctrl.vatPercent.disabledReason : undefined} />
-                    </div>
+        <div className="grid gap-5 md:grid-cols-3">
+          <div>
+            {/* ✅ FIXED: LabelRow spans full width, "i" goes far right, badge via right */}
+            <LabelRow
+              label="VAT %"
+              tip={vatTip}
+              containerRef={cardRef}
+              right={
+                ctrl.vatPercent.badge ? (
+                  <BadgePill text={ctrl.vatPercent.badge} tone="info" />
+                ) : null
+              }
+            />
 
-                    <div className="md:col-span-2">
-                      <Banner tone="info" text="Hint - Keep VAT separate so you can compare net before VAT and net after VAT." />
-                    </div>
-                  </div>
-                </>
-              ) : null}
-            </div>
-          ) : null}
+            <UnitField
+              value={Number.isFinite(vatPercent) ? vatPercent : 0}
+              onChange={(n) => {
+                phFirstTouch("vat");
+                phCapture("inputs_vat_changed", { value: n }, 400);
+                clearPreset();
+                const safe = Number.isFinite(n) ? Math.max(0, n) : 0;
+                setVatPercent(safe);
+              }}
+              ariaLabel="VAT percentage"
+              disabled={!ctrl.vatPercent.enabled}
+            />
+            <DisabledHint
+              text={!ctrl.vatPercent.enabled ? ctrl.vatPercent.disabledReason : undefined}
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <Banner
+              tone="info"
+              text="Hint - Keep VAT separate so you can compare net before VAT and net after VAT."
+            />
+          </div>
+        </div>
+      </>
+    ) : null}
+  </div>
+) : null}
+
 
           {/* ✅ ADVANCED TOOLS */}
           {sec.tools.visible ? (

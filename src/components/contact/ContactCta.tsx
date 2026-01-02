@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import type React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mail } from "lucide-react";
 
@@ -94,6 +95,9 @@ export function ContactCta() {
     message: "",
   });
 
+  // ✅ NEW: hide trigger on mobile portrait once user scrolls a bit
+  const [showTrigger, setShowTrigger] = useState(true);
+
   // Lock background scroll while open
   useEffect(() => {
     if (!open) return;
@@ -112,10 +116,41 @@ export function ContactCta() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  // ✅ NEW: scroll + media query logic (mobile portrait only)
+  useEffect(() => {
+    if (open) return; // when modal open, ignore scroll logic
+    if (typeof window === "undefined") return;
+
+    const mq = window.matchMedia("(max-width: 767px) and (orientation: portrait)");
+
+    const update = () => {
+      // Only apply on mobile portrait — otherwise always show
+      if (!mq.matches) {
+        setShowTrigger(true);
+        return;
+      }
+      // Fade away after a small scroll
+      setShowTrigger(window.scrollY < 40);
+    };
+
+    update();
+
+    window.addEventListener("scroll", update, { passive: true });
+    mq.addEventListener?.("change", update);
+
+    return () => {
+      window.removeEventListener("scroll", update);
+      mq.removeEventListener?.("change", update);
+    };
+  }, [open]);
+
   const { errors } = useMemo(() => validate(form), [form]);
   const hasErrors = Object.keys(errors).length > 0;
 
-  const canSend = useMemo(() => !hasErrors && status !== "sending", [hasErrors, status]);
+  const canSend = useMemo(
+    () => !hasErrors && status !== "sending",
+    [hasErrors, status]
+  );
 
   function closeAndReset() {
     setOpen(false);
@@ -165,30 +200,37 @@ export function ContactCta() {
 
   return (
     <>
-      {/* CONTACT CTA */}
-      <button
-        onClick={() => setOpen(true)}
-        className="
-          fixed md:static
-          top-4 right-4 md:top-auto md:right-auto
-          z-40
-          flex items-center gap-2
-          rounded-full
-          border border-white/20
-          bg-white/5
-          px-3 py-2 md:px-4 md:py-2
-          text-xs font-medium text-white/80
-          shadow-lg backdrop-blur-md
-          transition-all duration-200
-          hover:bg-white/10 hover:scale-[1.03]
-          focus:outline-none focus:ring-2 focus:ring-amber-400/30
-        "
-        aria-label="Contact"
-      >
-        <Mail className="h-4 w-4 text-amber-300/90" />
-
-        <span className="hidden md:inline">Business inquiry</span>
-      </button>
+      {/* ✅ CONTACT CTA (fades away on mobile portrait scroll) */}
+      <AnimatePresence>
+        {showTrigger && (
+          <motion.button
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.18 }}
+            onClick={() => setOpen(true)}
+            className="
+              fixed md:static
+              top-4 right-4 md:top-auto md:right-auto
+              z-40
+              flex items-center gap-2
+              rounded-full
+              border border-white/20
+              bg-white/5
+              px-3 py-2 md:px-4 md:py-2
+              text-xs font-medium text-white/80
+              shadow-lg backdrop-blur-md
+              transition-all duration-200
+              hover:bg-white/10 hover:scale-[1.03]
+              focus:outline-none focus:ring-2 focus:ring-amber-400/30
+            "
+            aria-label="Contact"
+          >
+            <Mail className="h-4 w-4 text-amber-300/90" />
+            <span className="hidden md:inline">Business inquiry</span>
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {open && (
@@ -224,26 +266,24 @@ export function ContactCta() {
               {/* Header */}
               <div className="flex justify-between items-center mb-4">
                 <div>
-<div className="flex items-center gap-2">
-  <div
-    className="
-      inline-flex items-center gap-2
-      rounded-full
-      border border-amber-400/30
-      bg-black/60
-      px-3 py-1
-      text-sm font-medium
-      text-amber-300
-      shadow-[0_0_0_1px_rgba(251,191,36,0.25)]
-      backdrop-blur
-    "
-  >
-    <Mail className="h-4 w-4 text-amber-300" />
-    Business Inquiry
-  </div>
-
-</div>
-
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="
+                        inline-flex items-center gap-2
+                        rounded-full
+                        border border-amber-400/30
+                        bg-black/60
+                        px-3 py-1
+                        text-sm font-medium
+                        text-amber-300
+                        shadow-[0_0_0_1px_rgba(251,191,36,0.25)]
+                        backdrop-blur
+                      "
+                    >
+                      <Mail className="h-4 w-4 text-amber-300" />
+                      Business Inquiry
+                    </div>
+                  </div>
                 </div>
 
                 <button
@@ -304,7 +344,7 @@ export function ContactCta() {
                 />
 
                 <div>
-<div className="mb-2 text-xs text-amber-200/90 flex items-center justify-between">
+                  <div className="mb-2 text-xs text-amber-200/90 flex items-center justify-between">
                     <span>Message</span>
                     <span className="text-xs text-white/70">
                       {Math.min(form.message.length, LIMITS.messageMax)}/{LIMITS.messageMax}
@@ -392,12 +432,13 @@ function Field(props: {
   error?: string;
   hint?: string;
 }) {
-  const { label, value, onChange, onBlur, placeholder, inputMode, error, hint } = props;
+  const { label, value, onChange, onBlur, placeholder, inputMode, error, hint } =
+    props;
   const hasError = Boolean(error);
 
   return (
     <div>
-<div className="mb-2 text-xs text-amber-200/90 flex items-center justify-between">
+      <div className="mb-2 text-xs text-amber-200/90 flex items-center justify-between">
         <span>{label}</span>
         {hint ? <span className="text-xs text-white/70">{hint}</span> : null}
       </div>

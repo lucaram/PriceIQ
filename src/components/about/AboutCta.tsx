@@ -8,6 +8,9 @@ import { Lightbulb, X, ArrowRight, TrendingUp, Layers3 } from "lucide-react";
 export function AboutCta() {
   const [open, setOpen] = useState(false);
 
+  // ✅ NEW: hide trigger on mobile portrait once user scrolls a bit
+  const [showTrigger, setShowTrigger] = useState(true);
+
   // Lock scroll when open
   useEffect(() => {
     if (!open) return;
@@ -25,29 +28,66 @@ export function AboutCta() {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
+  // ✅ NEW: scroll + media query logic (mobile portrait only)
+  useEffect(() => {
+    if (open) return; // when modal open, ignore scroll logic
+
+    if (typeof window === "undefined") return;
+
+    const mq = window.matchMedia("(max-width: 767px) and (orientation: portrait)");
+
+    const update = () => {
+      // Only apply on mobile portrait — otherwise always show
+      if (!mq.matches) {
+        setShowTrigger(true);
+        return;
+      }
+      // Fade away after a small scroll
+      setShowTrigger(window.scrollY < 40);
+    };
+
+    update();
+
+    window.addEventListener("scroll", update, { passive: true });
+    mq.addEventListener?.("change", update);
+
+    return () => {
+      window.removeEventListener("scroll", update);
+      mq.removeEventListener?.("change", update);
+    };
+  }, [open]);
+
   return (
     <>
-      {/* Trigger */}
-      <button
-        onClick={() => setOpen(true)}
-        className="
-          fixed md:static
-          top-4 left-4 md:top-auto md:left-auto
-          z-40
-          flex items-center gap-2
-          rounded-full border border-white/20
-          bg-white/5 px-3 py-2 md:px-4
-          text-xs font-medium text-white/80
-          shadow-lg backdrop-blur-md
-          transition-all duration-200
-          hover:bg-white/10 hover:scale-[1.03]
-          focus:outline-none focus:ring-2 focus:ring-amber-400/30
-        "
-        aria-label="About PriceIQ"
-      >
-        <Lightbulb className="h-4 w-4 text-amber-300/90" />
-        <span className="hidden md:inline">Who we are</span>
-      </button>
+      {/* ✅ Trigger (fades away on mobile portrait scroll) */}
+      <AnimatePresence>
+        {showTrigger && (
+          <motion.button
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.18 }}
+            onClick={() => setOpen(true)}
+            className="
+              fixed md:static
+              top-4 left-4 md:top-auto md:left-auto
+              z-40
+              flex items-center gap-2
+              rounded-full border border-white/20
+              bg-white/5 px-3 py-2 md:px-4
+              text-xs font-medium text-white/80
+              shadow-lg backdrop-blur-md
+              transition-all duration-200
+              hover:bg-white/10 hover:scale-[1.03]
+              focus:outline-none focus:ring-2 focus:ring-amber-400/30
+            "
+            aria-label="About PriceIQ"
+          >
+            <Lightbulb className="h-4 w-4 text-amber-300/90" />
+            <span className="hidden md:inline">Who we are</span>
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {open && (
@@ -160,9 +200,7 @@ export function AboutCta() {
                   <div className="mt-3 grid gap-2.5">
                     <Bullet>
                       Model how{" "}
-                      <span className="text-white/90">
-                        pricing & fees 
-                      </span>{" "}
+                      <span className="text-white/90">pricing & fees</span>{" "}
                       shape what you keep.
                     </Bullet>
                     <Bullet>
