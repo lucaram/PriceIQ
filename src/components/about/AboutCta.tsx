@@ -137,11 +137,11 @@ export function AboutCta() {
                     </div>
 
                     <h2 className="mt-3 text-[20px] md:text-2xl font-semibold tracking-tight">
-                      Clarity for pricing decisions.
+                      See the real cost of getting paid.
                     </h2>
 
                     <p className="mt-1 text-[13px] md:text-sm text-white/65 max-w-[60ch]">
-                      Know your real take-home before you sell.
+                      Clear insight for pricing decisions.
                     </p>
                   </div>
 
@@ -166,14 +166,14 @@ export function AboutCta() {
                   <div className="grid grid-cols-2 gap-3">
                     <MiniCard
                       icon={<Layers3 className="h-4 w-4 text-amber-300/90" />}
-                      title="Decision-ready"
-                      body="Turn assumptions into clean scenarios you can act on — fast."
+                      title="Decision-intelligence"
+                      body="Turn assumptions into clear scenarios - fast."
                     />
 
                     <MiniCard
                       icon={<TrendingUp className="h-4 w-4 text-amber-300/90" />}
                       title="Outcome transparency"
-                      body="Every area is acurately explained so economics are clear. "
+                      body="See exactly where your money goes — and why. "
                     />
                   </div>
                 </div>
@@ -186,26 +186,23 @@ export function AboutCta() {
                         What you get
                       </h3>
                       <p className="mt-1 text-[12px] text-white/60">
-                        A clear analysis of costs, revenues and profitability.
+                        A clear view of costs, revenue and profitability.
                       </p>
                     </div>
 
                     <div className="hidden md:flex items-center gap-2 text-[11px] text-white/55">
-                      For sellers & operators <span className="text-white/25">•</span>{" "}
-                      pricing teams <span className="text-white/25">•</span>{" "}
-                      creators
+                      Built for Businesses<span className="text-white/25">•</span>{" "}
+                      Agencies <span className="text-white/25">•</span>{" "}
+                      Teams
                     </div>
                   </div>
 
                   <div className="mt-3 grid gap-2.5">
                     <Bullet>
-                      Model how{" "}
-                      <span className="text-white/90">pricing & fees</span>{" "}
-                      shape what you keep.
+                      Model how pricing shape what you keep.
                     </Bullet>
                     <Bullet>
-                      Compare scenarios to choose the best{" "}
-                      <span className="text-white/90">cost model.</span>
+                      Compare scenarios to choose the bestmodel for your business.
                     </Bullet>
                   </div>
                 </div>
@@ -213,8 +210,8 @@ export function AboutCta() {
                 {/* CTA row */}
                 <div className="mt-4 md:mt-5 flex items-center justify-between gap-3">
                   <div className="text-[11px] text-white/55 leading-snug">
-                    Tip: model your{" "}
-                    <span className="text-white/80">Decisions</span>, then review the{" "}
+                    Model your{" "}
+                    <span className="text-white/80">Decisions</span>, review your {" "}
                     <span className="text-white/80">Outcome</span>.
                   </div>
 

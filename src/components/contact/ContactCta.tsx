@@ -344,7 +344,7 @@ export function ContactCta() {
                 />
 
                 <div>
-                  <div className="mb-2 text-xs text-amber-200/90 flex items-center justify-between">
+                  <div className="mb-2 text-xs text-white-200/90 flex items-center justify-between">
                     <span>Message</span>
                     <span className="text-xs text-white/70">
                       {Math.min(form.message.length, LIMITS.messageMax)}/{LIMITS.messageMax}
@@ -438,7 +438,7 @@ function Field(props: {
 
   return (
     <div>
-      <div className="mb-2 text-xs text-amber-200/90 flex items-center justify-between">
+      <div className="mb-2 text-xs text-white-200/90 flex items-center justify-between">
         <span>{label}</span>
         {hint ? <span className="text-xs text-white/70">{hint}</span> : null}
       </div>

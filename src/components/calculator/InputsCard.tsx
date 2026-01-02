@@ -645,8 +645,7 @@ function SegmentedProvider({
       <strong>PayPal</strong>, <strong>Adyen</strong>, and <strong>Checkout.com</strong> use their own fee models based on
       account and transaction type.
       {"\n"}
-      <strong>Custom</strong> lets you label the provider (for display) while still using your chosen product bucket and
-      overrides for what-if maths.
+      <strong>Custom provider</strong> lets you label the provider while still using your chosen product bucket; please note that in this case fee % and fixed fee are set to 0 and if you want to change them please go to the Provider Fee Override section.
       {"\n\n"}
       Some controls (like <strong>Pricing tier</strong>) are <strong>Stripe-specific</strong>, so they won’t appear for
       non-Stripe providers.
@@ -1958,35 +1957,42 @@ Configure pricing, fees and your economic assumptions.              </p>
 
                   <div className="grid gap-3">
                     <LabelRow
-                      label="Scenario presets"
-                      tip={
-                        <>
-                          Presets are <strong>ready-made scenario bundles</strong> (quick starting points).
-                          {"\n\n"}
-                          This dropdown is filtered to show <strong>only</strong>:
-                          {"\n"}• <strong>No preset</strong>
-                          {"\n"}• The <strong>4 presets</strong> for your product bucket:{" "}
-                          <strong>{presetTag === "connect" ? "Connect" : "Cards"}</strong>
-                          {"\n\n"}
-                          Presets can change: FX, platform fee, fee base, mode, rounding, psych pricing.
-                          {"\n"}
-                          They don’t change: Region, price/target, pricing tier, VAT, or tools toggles.
-                        </>
-                      }
-                      containerRef={cardRef}
-                      right={
-                        <BadgePill
-                          text={presetBucketLabel({
-                            providerId: normalizedProviderId,
-                            presetTag,
-                            productId: safeProductId,
-                            productLabel: activeProduct?.label,
-                            customProviderLabel,
-                          })}
-                          tone={presetTag === "connect" ? "info" : "muted"}
-                        />
-                      }
-                    />
+  label="Scenario presets"
+  containerRef={cardRef}
+  right={
+    <div className="flex items-center gap-2">
+      <BadgePill
+        text={presetBucketLabel({
+          providerId: normalizedProviderId,
+          presetTag,
+          productId: safeProductId,
+          productLabel: activeProduct?.label,
+          customProviderLabel,
+        })}
+        tone={presetTag === "connect" ? "info" : "muted"}
+      />
+
+      <InfoTip
+        text={
+          <>
+            Presets are <strong>ready-made scenario bundles</strong> (quick starting points).
+            {"\n\n"}
+            This dropdown is filtered to show <strong>only</strong>:
+            {"\n"}• <strong>No preset</strong>
+            {"\n"}• The <strong>4 presets</strong> for your product bucket:{" "}
+            <strong>{presetTag === "connect" ? "Connect" : "Cards"}</strong>
+            {"\n\n"}
+            Presets can change: FX, platform fee, fee base, mode, rounding, psych pricing.
+            {"\n"}
+            They don’t change: Region, price/target, pricing tier, VAT, or tools toggles.
+          </>
+        }
+        containerRef={cardRef}
+      />
+    </div>
+  }
+/>
+
 
                     <div className="flex flex-col gap-3 md:flex-row md:items-stretch">
                       <div className="min-w-0 flex-1">
@@ -2285,93 +2291,103 @@ Configure pricing, fees and your economic assumptions.              </p>
 ) : null}
 
 
-          {/* ✅ PROVIDER FEE OVERRIDE */}
-          <div
-            className={[
-              "mt-6 rounded-3xl border border-white/18 bg-black/18 p-5",
-              "shadow-[0_18px_70px_rgba(0,0,0,0.72)]",
-            ].join(" ")}
-          >
-            <CollapsibleHeader
-              title="Provider Fee Override"
-              open={openFeeOverride}
-              setOpen={setOpenFeeOverride}
-              analyticsKey="fee_override"
-              onToggle={onSectionToggle}
-            />
-            {openFeeOverride ? (
-              <>
-                <div className="grid gap-5 md:grid-cols-2">
-                  {/* Provider % */}
-                  <div>
-                    <LabelRow
-                      label="Fee %"
-                      tip={feeOverrideTip}
-                      containerRef={cardRef}
-                      right={
-                        customProviderFeePercent === null ? (
-                          <BadgePill text="Default" tone="muted" />
-                        ) : (
-                          <BadgePill text="Override" tone="warning" />
-                        )
-                      }
-                    />
-                    <NullableUnitField
-                      value={customProviderFeePercent}
-                      onChange={(n) => {
-                        phFirstTouch("fee_override");
-                        phCapture("inputs_fee_override_percent_changed", { value: n }, 0);
-                        clearPreset();
-                        setCustomProviderFeePercent(clampPctOrNull(n));
-                      }}
-                      ariaLabel="Custom provider fee percent"
-                      placeholder="(default)"
-                    />
-                  </div>
+         {/* ✅ PROVIDER FEE OVERRIDE */}
+<div
+  className={[
+    "mt-6 rounded-3xl border border-white/18 bg-black/18 p-5",
+    "shadow-[0_18px_70px_rgba(0,0,0,0.72)]",
+  ].join(" ")}
+>
+  <CollapsibleHeader
+    title="Provider Fee Override"
+    open={openFeeOverride}
+    setOpen={setOpenFeeOverride}
+    analyticsKey="fee_override"
+    onToggle={onSectionToggle}
+  />
 
-                  {/* Fixed fee */}
-                  <div>
-                    <LabelRow
-                      label="Fixed fee"
-                      tip={
-                        <>
-                          Optional fixed fee override (e.g. 0.20).
-                          {"\n\n"}
-                          Leave blank to use the provider’s default fixed fee.
-                        </>
-                      }
-                      containerRef={cardRef}
-                      right={
-                        customFixedFee === null ? (
-                          <BadgePill text="Default" tone="muted" />
-                        ) : (
-                          <BadgePill text="Override" tone="warning" />
-                        )
-                      }
-                    />
-                    <NullableMoneyField
-                      value={customFixedFee}
-                      onChange={(n) => {
-                        phFirstTouch("fee_override");
-                        phCapture("inputs_fee_override_fixed_changed", { value: n }, 0);
-                        clearPreset();
-                        setCustomFixedFee(clampMoneyOrNull(n));
-                      }}
-                      ariaLabel="Custom provider fixed fee"
-                      placeholder="(default)"
-                    />
-                  </div>
+  {openFeeOverride ? (
+    <>
+      <div className="grid gap-5 md:grid-cols-2">
+        {/* Provider % */}
+        <div>
+          <LabelRow
+            label="Fee %"
+            containerRef={cardRef}
+            right={
+              <div className="flex items-center gap-2">
+                {customProviderFeePercent === null ? (
+                  <BadgePill text="Default" tone="muted" />
+                ) : (
+                  <BadgePill text="Override" tone="warning" />
+                )}
 
-                  <div className="md:col-span-2">
-                    <Banner
-                      tone="info"
-                      text="Hint - Leave blank to use defaults. Override values for what-if scenarios."
-                    />
-                  </div>
-                </div>
-              </>
-            ) : null}
-          </div>
+                <InfoTip text={feeOverrideTip} containerRef={cardRef} />
+              </div>
+            }
+          />
+
+          <NullableUnitField
+            value={customProviderFeePercent}
+            onChange={(n) => {
+              phFirstTouch("fee_override");
+              phCapture("inputs_fee_override_percent_changed", { value: n }, 0);
+              clearPreset();
+              setCustomProviderFeePercent(clampPctOrNull(n));
+            }}
+            ariaLabel="Custom provider fee percent"
+            placeholder="(default)"
+          />
+        </div>
+
+        {/* Fixed fee */}
+        <div>
+          <LabelRow
+            label="Fixed fee"
+            containerRef={cardRef}
+            right={
+              <div className="flex items-center gap-2">
+                {customFixedFee === null ? (
+                  <BadgePill text="Default" tone="muted" />
+                ) : (
+                  <BadgePill text="Override" tone="warning" />
+                )}
+
+                <InfoTip
+                  text={
+                    <>
+                      Optional fixed fee override (e.g. 0.20).
+                      {"\n\n"}
+                      Leave blank to use the provider’s default fixed fee.
+                    </>
+                  }
+                  containerRef={cardRef}
+                />
+              </div>
+            }
+          />
+
+          <NullableMoneyField
+            value={customFixedFee}
+            onChange={(n) => {
+              phFirstTouch("fee_override");
+              phCapture("inputs_fee_override_fixed_changed", { value: n }, 0);
+              clearPreset();
+              setCustomFixedFee(clampMoneyOrNull(n));
+            }}
+            ariaLabel="Custom provider fixed fee"
+            placeholder="(default)"
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <Banner tone="info" text="Hint - Leave blank to use defaults. Override values for what-if scenarios." />
+        </div>
+      </div>
+    </>
+  ) : null}
+</div>
+
 
          {/* ✅ PLATFORM */}
 {sec.platform.visible ? (
@@ -2554,262 +2570,263 @@ Configure pricing, fees and your economic assumptions.              </p>
 ) : null}
 
 
-          {/* ✅ ADVANCED TOOLS */}
-          {sec.tools.visible ? (
-            <>
-              <GoldDivider />
+{/* ✅ ADVANCED TOOLS */}
+{sec.tools.visible ? (
+  <>
+    <GoldDivider />
 
-              <div
-                className={[
-                  "rounded-3xl border border-white/18 bg-black/18 p-5",
-                  "shadow-[0_18px_70px_rgba(0,0,0,0.72)]",
-                ].join(" ")}
-              >
-                <CollapsibleHeader
-                  title="Advanced tools"
-                  open={openTools}
-                  setOpen={setOpenTools}
-                  analyticsKey="advanced_tools"
-                  onToggle={onSectionToggle}
-                />
+    <div
+      className={[
+        "rounded-3xl border border-white/18 bg-black/18 p-5",
+        "shadow-[0_18px_70px_rgba(0,0,0,0.72)]",
+      ].join(" ")}
+    >
+      <CollapsibleHeader
+        title="Advanced tools"
+        open={openTools}
+        setOpen={setOpenTools}
+        analyticsKey="advanced_tools"
+        onToggle={onSectionToggle}
+      />
 
-                {openTools ? (
-                  <>
-                    <div className="mt-4 space-y-4">
-                      {/* ===================== Break-even ===================== */}
-                      <ToolSection
-                        title="Break-even"
-                        subtitle="Solve for the customer price needed to hit a target net."
-                        accent="amber"
-                        right={
-                          <div className="flex items-center gap-2">
-                            {ctrl.breakEven.badge ? <BadgePill text={ctrl.breakEven.badge} tone="muted" /> : null}
-                            <TogglePill
-                              checked={breakEvenOn}
-                              onChange={(v) => {
-                                phFirstTouch("break_even");
-                                phCapture("inputs_tool_toggled", { tool: "break_even", enabled: v }, 0);
-                                clearPreset();
-                                setBreakEvenOn(v);
-                              }}
-                              ariaLabel="Toggle break-even tool"
-                              disabled={!ctrl.breakEven.enabled}
-                            />
-                            <span className="text-[11px] text-white/50">{breakEvenOn ? "On" : "Off"}</span>
-                          </div>
+      {openTools ? (
+        <>
+          <div className="mt-4 space-y-4">
+            {/* ===================== Break-even ===================== */}
+            <ToolSection
+              title="Break-even"
+              subtitle="Solve for the customer price needed to hit a target net."
+              accent="amber"
+              right={
+                <div className="flex items-center gap-2">
+                  {ctrl.breakEven.badge ? <BadgePill text={ctrl.breakEven.badge} tone="muted" /> : null}
+                  <TogglePill
+                    checked={breakEvenOn}
+                    onChange={(v) => {
+                      phFirstTouch("break_even");
+                      phCapture("inputs_tool_toggled", { tool: "break_even", enabled: v }, 0);
+                      clearPreset();
+                      setBreakEvenOn(v);
+                    }}
+                    ariaLabel="Toggle break-even tool"
+                    disabled={!ctrl.breakEven.enabled}
+                  />
+                  <span className="text-[11px] text-white/50">{breakEvenOn ? "On" : "Off"}</span>
+                </div>
+              }
+            >
+              <div className="flex justify-center">
+                <div className="w-full max-w-[520px]">
+                  {/* ✅ FIX: ensure LabelRow has full width so its ml-auto can push the "i" to the far right */}
+                  <div className="w-full">
+                    <LabelRow label="Break-even" tip={breakEvenTip} containerRef={cardRef} />
+                  </div>
+
+                  <MoneyField
+                    value={breakEvenTargetNet}
+                    disabled={!breakEvenOn || !ctrl.breakEven.enabled}
+                    onChange={(n) => {
+                      phFirstTouch("break_even");
+                      phCapture("inputs_break_even_target_changed", { value: n }, 400);
+                      clearPreset();
+                      setBreakEvenTargetNet(n);
+                    }}
+                    ariaLabel="Break-even target net"
+                  />
+                  <DisabledHint text={!ctrl.breakEven.enabled ? ctrl.breakEven.disabledReason : undefined} />
+                </div>
+              </div>
+            </ToolSection>
+
+            {/* ===================== Fee impact ===================== */}
+            <ToolSection
+              title="Fee impact"
+              subtitle="See how your net changes when fees drift up/down."
+              accent="rose"
+              right={
+                <div className="flex items-center gap-2">
+                  {ctrl.sensitivity.badge ? <BadgePill text={ctrl.sensitivity.badge} tone="muted" /> : null}
+                  <TogglePill
+                    checked={sensitivityOn}
+                    onChange={(v) => {
+                      phFirstTouch("fee_impact");
+                      phCapture("inputs_tool_toggled", { tool: "fee_impact", enabled: v }, 0);
+                      clearPreset();
+                      setSensitivityOn(v);
+                    }}
+                    ariaLabel="Toggle fee impact tool"
+                    disabled={!ctrl.sensitivity.enabled}
+                  />
+                  <span className="text-[11px] text-white/50">{sensitivityOn ? "On" : "Off"}</span>
+                </div>
+              }
+            >
+              <div className="flex justify-center">
+                <div className="w-full max-w-[820px]">
+                  <div className="grid gap-5 md:grid-cols-2">
+                    <div>
+                      {/* ✅ FIX: full-width wrapper so "i" goes far right */}
+                      <div className="w-full">
+                        <LabelRow label="Fee impact ±" tip={feeImpactTip} containerRef={cardRef} />
+                      </div>
+
+                      <UnitField
+                        value={sensitivityDeltaPct}
+                        disabled={!sensitivityOn || !ctrl.sensitivity.enabled}
+                        onChange={(n) => {
+                          phFirstTouch("fee_impact");
+                          phCapture("inputs_fee_impact_delta_changed", { value: n }, 400);
+                          clearPreset();
+                          setSensitivityDeltaPct(n);
+                        }}
+                        ariaLabel="Sensitivity delta percent"
+                      />
+                      <DisabledHint text={!ctrl.sensitivity.enabled ? ctrl.sensitivity.disabledReason : undefined} />
+                    </div>
+
+                    <div>
+                      {/* ✅ FIX: full-width wrapper so "i" goes far right */}
+                      <div className="w-full">
+                        <LabelRow label="Affected fee" tip={affectedFeeTip} containerRef={cardRef} />
+                      </div>
+
+                      <FieldShell disabled={!sensitivityOn || !ctrl.sensitivity.enabled}>
+                        <select
+                          disabled={!sensitivityOn || !ctrl.sensitivity.enabled}
+                          value={sensitivityTarget}
+                          onChange={(e) => {
+                            phFirstTouch("fee_impact");
+                            phCapture("inputs_fee_impact_target_changed", { value: e.target.value }, 0);
+                            clearPreset();
+                            setSensitivityTarget(e.target.value as SensitivityTarget);
+                          }}
+                          className="relative z-10 w-full bg-transparent px-3.5 text-[13px] text-white outline-none
+                            [color-scheme:dark]
+                            [&>option]:bg-zinc-900 [&>option]:text-white disabled:cursor-not-allowed"
+                        >
+                          <option value="stripe">{providerName} fee</option>
+                          <option value="fx">FX fee</option>
+                          <option value="platform">Platform fee</option>
+                          <option value="all">All fees</option>
+                        </select>
+                      </FieldShell>
+                      <DisabledHint text={!ctrl.sensitivity.enabled ? ctrl.sensitivity.disabledReason : undefined} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </ToolSection>
+
+            {/* ===================== Volume projections ===================== */}
+            <ToolSection
+              title="Volume projections"
+              subtitle="Estimate monthly totals across mixed baskets and currencies."
+              accent="emerald"
+              right={
+                <div className="flex items-center gap-2">
+                  {ctrl.volume?.badge ? <BadgePill text={ctrl.volume.badge} tone="muted" /> : null}
+                  <TogglePill
+                    checked={volumeOn}
+                    onChange={(v) => {
+                      phFirstTouch("volume");
+                      phCapture("inputs_tool_toggled", { tool: "volume", enabled: v }, 0);
+                      clearPreset();
+                      setVolumeOn(v);
+                    }}
+                    ariaLabel="Toggle volume projections tool"
+                    disabled={ctrl.volume ? !ctrl.volume.enabled : false}
+                  />
+                  <span className="text-[11px] text-white/50">{volumeOn ? "On" : "Off"}</span>
+                </div>
+              }
+            >
+              <div className="flex justify-center">
+                <div className="w-full max-w-[980px] space-y-5">
+                  {/* top inputs */}
+                  <div className="grid gap-5 md:grid-cols-3">
+                    <div>
+                      <LabelRow
+                        label="TX / month"
+                        tip={
+                          <>
+                            How many customer payments you expect per month.
+                            {"\n\n"}
+                            Used to estimate monthly totals from your current fee assumptions.
+                          </>
                         }
-                      >
-                        <div className="flex justify-center">
-                          <div className="w-full max-w-[520px]">
-                            <div className="flex items-center justify-between gap-3">
-                              <LabelRow label="Break-even" tip={breakEvenTip} containerRef={cardRef} />
+                        containerRef={cardRef}
+                      />
+                      <FieldShell disabled={!volumeOn || (ctrl.volume ? !ctrl.volume.enabled : false)}>
+                        <input
+                          inputMode="numeric"
+                          value={String(volumeTxPerMonth)}
+                          disabled={!volumeOn || (ctrl.volume ? !ctrl.volume.enabled : false)}
+                          onChange={(e) => {
+                            phFirstTouch("volume");
+                            const raw = e.target.value.replace(/[^\d]/g, "");
+                            const n = raw === "" ? 0 : Number(raw);
+                            if (!Number.isFinite(n)) return;
+                            phCapture("inputs_volume_tx_changed", { value: n }, 300);
+                            clearPreset();
+                            setVolumeTxPerMonth(clampInt(n, 0));
+                          }}
+                          className="relative z-10 w-full bg-transparent px-3.5 text-[13px] text-white outline-none disabled:cursor-not-allowed"
+                          aria-label="Transactions per month"
+                        />
+                      </FieldShell>
+                    </div>
+
+                    <div>
+                      <LabelRow
+                        label="Refund %"
+                        tip={
+                          <>
+                            Percentage of transactions that refund (or chargeback) per month.
+                            {"\n\n"}
+                            This is a simple top-line adjustment for projection totals.
+                          </>
+                        }
+                        containerRef={cardRef}
+                      />
+                      <UnitField
+                        value={Number.isFinite(volumeRefundRatePct) ? Math.max(0, volumeRefundRatePct) : 0}
+                        disabled={!volumeOn || (ctrl.volume ? !ctrl.volume.enabled : false)}
+                        onChange={(n) => {
+                          phFirstTouch("volume");
+                          phCapture("inputs_volume_refund_rate_changed", { value: n }, 300);
+                          clearPreset();
+                          setVolumeRefundRatePct(Math.max(0, n));
+                        }}
+                        ariaLabel="Refund rate percent"
+                      />
+                    </div>
+
+                    <div className="flex items-start justify-end">
+                      <div className="w-full md:w-[260px]">
+                        <LabelRow
+                          label=""
+                          containerRef={cardRef}
+                          right={
+                            <div className="flex items-center gap-2">
+                              <BadgePill text={volumeAllocatedBadge.text} tone={volumeAllocatedBadge.tone} />
+                              <InfoTip
+                                text={
+                                  <>
+                                    Each tier represents a basket at a price point + currency FX assumption.
+                                    {"\n\n"}
+                                    Shares should add up to 100% for a full allocation.
+                                  </>
+                                }
+                                containerRef={cardRef}
+                              />
                             </div>
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
 
-                            <MoneyField
-                              value={breakEvenTargetNet}
-                              disabled={!breakEvenOn || !ctrl.breakEven.enabled}
-                              onChange={(n) => {
-                                phFirstTouch("break_even");
-                                phCapture("inputs_break_even_target_changed", { value: n }, 400);
-                                clearPreset();
-                                setBreakEvenTargetNet(n);
-                              }}
-                              ariaLabel="Break-even target net"
-                            />
-                            <DisabledHint text={!ctrl.breakEven.enabled ? ctrl.breakEven.disabledReason : undefined} />
-                          </div>
-                        </div>
-                      </ToolSection>
-
-                      {/* ===================== Fee impact ===================== */}
-                      <ToolSection
-                        title="Fee impact"
-                        subtitle="See how your net changes when fees drift up/down."
-                        accent="rose"
-                        right={
-                          <div className="flex items-center gap-2">
-                            {ctrl.sensitivity.badge ? <BadgePill text={ctrl.sensitivity.badge} tone="muted" /> : null}
-                            <TogglePill
-                              checked={sensitivityOn}
-                              onChange={(v) => {
-                                phFirstTouch("fee_impact");
-                                phCapture("inputs_tool_toggled", { tool: "fee_impact", enabled: v }, 0);
-                                clearPreset();
-                                setSensitivityOn(v);
-                              }}
-                              ariaLabel="Toggle fee impact tool"
-                              disabled={!ctrl.sensitivity.enabled}
-                            />
-                            <span className="text-[11px] text-white/50">{sensitivityOn ? "On" : "Off"}</span>
-                          </div>
-                        }
-                      >
-                        <div className="flex justify-center">
-                          <div className="w-full max-w-[820px]">
-                            <div className="grid gap-5 md:grid-cols-2">
-                              <div>
-                                <div className="flex items-center justify-between gap-3">
-                                  <LabelRow label="Fee impact ±" tip={feeImpactTip} containerRef={cardRef} />
-                                </div>
-
-                                <UnitField
-                                  value={sensitivityDeltaPct}
-                                  disabled={!sensitivityOn || !ctrl.sensitivity.enabled}
-                                  onChange={(n) => {
-                                    phFirstTouch("fee_impact");
-                                    phCapture("inputs_fee_impact_delta_changed", { value: n }, 400);
-                                    clearPreset();
-                                    setSensitivityDeltaPct(n);
-                                  }}
-                                  ariaLabel="Sensitivity delta percent"
-                                />
-                                <DisabledHint text={!ctrl.sensitivity.enabled ? ctrl.sensitivity.disabledReason : undefined} />
-                              </div>
-
-                              <div>
-                                <div className="flex items-center justify-between gap-3">
-                                  <LabelRow label="Affected fee" tip={affectedFeeTip} containerRef={cardRef} />
-                                </div>
-
-                                <FieldShell disabled={!sensitivityOn || !ctrl.sensitivity.enabled}>
-                                  <select
-                                    disabled={!sensitivityOn || !ctrl.sensitivity.enabled}
-                                    value={sensitivityTarget}
-                                    onChange={(e) => {
-                                      phFirstTouch("fee_impact");
-                                                                            phCapture("inputs_fee_impact_target_changed", { value: e.target.value }, 0);
-                                      clearPreset();
-                                      setSensitivityTarget(e.target.value as SensitivityTarget);
-                                    }}
-                                    className="relative z-10 w-full bg-transparent px-3.5 text-[13px] text-white outline-none
-                                     [color-scheme:dark]
-                                     [&>option]:bg-zinc-900 [&>option]:text-white disabled:cursor-not-allowed"
-                                  >
-                                    <option value="stripe">{providerName} fee</option>
-                                    <option value="fx">FX fee</option>
-                                    <option value="platform">Platform fee</option>
-                                    <option value="all">All fees</option>
-                                  </select>
-                                </FieldShell>
-                                <DisabledHint text={!ctrl.sensitivity.enabled ? ctrl.sensitivity.disabledReason : undefined} />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </ToolSection>
-
-                      {/* ===================== Volume projections ===================== */}
-                      <ToolSection
-                        title="Volume projections"
-                        subtitle="Estimate monthly totals across mixed baskets and currencies."
-                        accent="emerald"
-                        right={
-                          <div className="flex items-center gap-2">
-                            {ctrl.volume?.badge ? <BadgePill text={ctrl.volume.badge} tone="muted" /> : null}
-                            <TogglePill
-                              checked={volumeOn}
-                              onChange={(v) => {
-                                phFirstTouch("volume");
-                                phCapture("inputs_tool_toggled", { tool: "volume", enabled: v }, 0);
-                                clearPreset();
-                                setVolumeOn(v);
-                              }}
-                              ariaLabel="Toggle volume projections tool"
-                              disabled={ctrl.volume ? !ctrl.volume.enabled : false}
-                            />
-                            <span className="text-[11px] text-white/50">{volumeOn ? "On" : "Off"}</span>
-                          </div>
-                        }
-                      >
-                        <div className="flex justify-center">
-                          <div className="w-full max-w-[980px] space-y-5">
-                            {/* top inputs */}
-                            <div className="grid gap-5 md:grid-cols-3">
-                              <div>
-                                <LabelRow
-                                  label="TX / month"
-                                  tip={
-                                    <>
-                                      How many customer payments you expect per month.
-                                      {"\n\n"}
-                                      Used to estimate monthly totals from your current fee assumptions.
-                                    </>
-                                  }
-                                  containerRef={cardRef}
-                                />
-                                <FieldShell disabled={!volumeOn || (ctrl.volume ? !ctrl.volume.enabled : false)}>
-                                  <input
-                                    inputMode="numeric"
-                                    value={String(volumeTxPerMonth)}
-                                    disabled={!volumeOn || (ctrl.volume ? !ctrl.volume.enabled : false)}
-                                    onChange={(e) => {
-                                      phFirstTouch("volume");
-                                      const raw = e.target.value.replace(/[^\d]/g, "");
-                                      const n = raw === "" ? 0 : Number(raw);
-                                      if (!Number.isFinite(n)) return;
-                                      phCapture("inputs_volume_tx_changed", { value: n }, 300);
-                                      clearPreset();
-                                      setVolumeTxPerMonth(clampInt(n, 0));
-                                    }}
-                                    className="relative z-10 w-full bg-transparent px-3.5 text-[13px] text-white outline-none disabled:cursor-not-allowed"
-                                    aria-label="Transactions per month"
-                                  />
-                                </FieldShell>
-                              </div>
-
-                              <div>
-                                <LabelRow
-                                  label="Refund %"
-                                  tip={
-                                    <>
-                                      Percentage of transactions that refund (or chargeback) per month.
-                                      {"\n\n"}
-                                      This is a simple top-line adjustment for projection totals.
-                                    </>
-                                  }
-                                  containerRef={cardRef}
-                                />
-                                <UnitField
-                                  value={Number.isFinite(volumeRefundRatePct) ? Math.max(0, volumeRefundRatePct) : 0}
-                                  disabled={!volumeOn || (ctrl.volume ? !ctrl.volume.enabled : false)}
-                                  onChange={(n) => {
-                                    phFirstTouch("volume");
-                                    phCapture("inputs_volume_refund_rate_changed", { value: n }, 300);
-                                    clearPreset();
-                                    setVolumeRefundRatePct(Math.max(0, n));
-                                  }}
-                                  ariaLabel="Refund rate percent"
-                                />
-                              </div>
-
-<div className="flex items-start justify-end">
-  <div className="w-full md:w-[260px]">
-    <LabelRow
-      label=""
-      containerRef={cardRef}
-      right={
-        <div className="flex items-center gap-2">
-          <BadgePill text={volumeAllocatedBadge.text} tone={volumeAllocatedBadge.tone} />
-
-          <InfoTip
-            text={
-              <>
-                Each tier represents a basket at a price point + currency FX assumption.
-                {"\n\n"}
-                Shares should add up to 100% for a full allocation.
-              </>
-            }
-            containerRef={cardRef}
-          />
-        </div>
-      }
-    />
-  </div>
-</div></div>
-
-
-
-                            <MiniDivider />
+                  <MiniDivider />
 
                             {/* tiers editor */}
                             <div className="space-y-3">
