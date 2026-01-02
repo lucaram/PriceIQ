@@ -637,20 +637,69 @@ function SegmentedProvider({
   const candidates: ProviderId[] = ["stripe", "paypal", "adyen", "checkoutcom", "custom" as ProviderId];
 
   const providerTip = (
-    <>
-      Switch the payment provider used for the fee calculation.
-      {"\n\n"}
-      <strong>Stripe</strong> uses your Stripe tier table.
-      {"\n\n"}
-      <strong>PayPal</strong>, <strong>Adyen</strong>, and <strong>Checkout</strong> use their own fee models based on
-      account and transaction type.
-      {"\n\n"}
-      <strong>Custom provider</strong> lets you label the provider while still using your chosen product bucket; please note that in this case fee % and fixed fee are set to 0 and if you want to change them please go to the Provider Fee Override section.
-      {"\n\n"}
-      Some controls (like <strong>Pricing tier</strong>) are <strong>Stripe-specific</strong>, so they won’t appear for
-      non-Stripe providers.
-    </>
-  );
+  <>
+    Switch the payment provider used for the fee calculation.
+    {"\n\n"}
+
+    <strong>Stripe</strong> uses your configured Stripe pricing tiers.
+    {"\n"}
+    Learn more:{" "}
+    <a
+      href="https://stripe.com/pricing"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="underline"
+    >
+      stripe.com/pricing
+    </a>
+
+    {"\n\n"}
+
+    <strong>PayPal</strong>, <strong>Adyen</strong>, and <strong>Checkout</strong> use their own fee models based on
+    account setup and transaction type.
+    {"\n"}
+    Learn more:
+    {"\n"}•{" "}
+    <a
+      href="https://www.paypal.com/business/pricing"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="underline"
+    >
+      paypal.com/business/pricing
+    </a>
+    {"\n"}•{" "}
+    <a
+      href="https://www.adyen.com/pricing"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="underline"
+    >
+      adyen.com/pricing
+    </a>
+    {"\n"}•{" "}
+    <a
+      href="https://www.checkout.com/pricing"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="underline"
+    >
+      checkout.com/pricing
+    </a>
+
+    {"\n\n"}
+
+    <strong>Custom provider</strong> lets you label the provider while still using your selected product bucket.
+    By default, provider fee % and fixed fee are set to <strong>0</strong>.
+    To apply custom fees, use the <strong>Provider Fee Override</strong> section.
+
+    {"\n\n"}
+
+    Some controls (such as <strong>Pricing tier</strong>) are <strong>Stripe-specific</strong> and won’t appear for
+    non-Stripe providers.
+  </>
+);
+
 
   const customLabelValue = (customProviderLabel ?? "").trim();
   const customDisplay = customLabelValue.length ? customLabelValue : "Custom Provider";

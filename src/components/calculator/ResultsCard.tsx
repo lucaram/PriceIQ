@@ -1727,7 +1727,7 @@ export function ResultsCard(props: {
                       <thead>
                         <tr className="border-b border-white/10 text-white/60">
                           <th className="px-3 py-2 font-semibold">Provider</th>
-                          <th className="px-3 py-2 font-semibold">Reference pricing source</th>
+                          <th className="px-3 py-2 font-semibold">Web link</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/10">
