@@ -185,7 +185,8 @@ export function ContactCta() {
         "
         aria-label="Contact"
       >
-        <Mail className="h-4 w-4" />
+        <Mail className="h-4 w-4 text-amber-300/90" />
+
         <span className="hidden md:inline">Business inquiry</span>
       </button>
 
@@ -223,8 +224,24 @@ export function ContactCta() {
               {/* Header */}
               <div className="flex justify-between items-center mb-4">
                 <div>
-                  <h2 className="text-lg font-semibold">Business Inquiry</h2>
-                  <p className="text-xs text-white/60">I’ll reply personally.</p>
+<div className="flex items-center gap-2">
+  <div
+    className="
+      inline-flex items-center gap-2
+      rounded-full
+      border border-amber-400/30
+      bg-black/60
+      px-3 py-1
+      text-sm font-medium
+      text-amber-300
+      shadow-[0_0_0_1px_rgba(251,191,36,0.25)]
+      backdrop-blur
+    "
+  >
+    <Mail className="h-4 w-4 text-amber-300" />
+    Business Inquiry
+  </div>
+</div>
                 </div>
 
                 <button
@@ -285,7 +302,7 @@ export function ContactCta() {
                 />
 
                 <div>
-                  <div className="mb-2 text-xs text-white/70 flex items-center justify-between">
+<div className="mb-2 text-xs text-amber-200/90 flex items-center justify-between">
                     <span>Message</span>
                     <span className="text-xs text-white/70">
                       {Math.min(form.message.length, LIMITS.messageMax)}/{LIMITS.messageMax}
@@ -378,7 +395,7 @@ function Field(props: {
 
   return (
     <div>
-      <div className="mb-2 text-xs text-white/70 flex items-center justify-between">
+<div className="mb-2 text-xs text-amber-200/90 flex items-center justify-between">
         <span>{label}</span>
         {hint ? <span className="text-xs text-white/70">{hint}</span> : null}
       </div>

@@ -2,6 +2,7 @@
 import { Suspense } from "react";
 import { Calculator } from "@/components/calculator/Calculator";
 import { ContactCta } from "@/components/contact/ContactCta";
+import { AboutCta } from "@/components/about/AboutCta";
 
 function CalculatorFallback() {
   return (
@@ -15,7 +16,13 @@ export default function Page() {
   return (
     <main className="bg-premium min-h-screen text-white">
       <div className="relative mx-auto max-w-6xl px-5 py-10 md:py-14">
-        {/* Top-right contact CTA (modal trigger) */}
+
+        {/* Top-left: About */}
+        <div className="absolute left-5 top-6 md:left-6 md:top-8">
+          <AboutCta />
+        </div>
+
+        {/* Top-right: Contact */}
         <div className="absolute right-5 top-6 md:right-6 md:top-8">
           <ContactCta />
         </div>
@@ -34,7 +41,6 @@ export default function Page() {
         </Suspense>
       </div>
 
-      {/* Footer */}
       <footer className="mt-12 border-t border-white/10 py-6 text-center text-xs text-white/50">
         © {new Date().getFullYear()} PriceIQ. All rights reserved.
       </footer>
