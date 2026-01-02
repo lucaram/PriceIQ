@@ -241,7 +241,9 @@ export function ContactCta() {
     <Mail className="h-4 w-4 text-amber-300" />
     Business Inquiry
   </div>
+
 </div>
+
                 </div>
 
                 <button
@@ -319,7 +321,7 @@ export function ContactCta() {
                       }))
                     }
                     onBlur={() => setTouched((t) => ({ ...t, message: true }))}
-                    placeholder="Tell me what you're building…"
+                    placeholder="Tell us your inquiry …"
                     className={[
                       "w-full rounded-2xl bg-white/5 border px-4 py-3 text-sm text-white placeholder-white/40",
                       "focus:outline-none focus:ring-2 focus:ring-amber-400/30",
