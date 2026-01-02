@@ -1,6 +1,7 @@
 // src/app/page.tsx
 import { Suspense } from "react";
 import { Calculator } from "@/components/calculator/Calculator";
+import { ContactCta } from "@/components/contact/ContactCta";
 
 function CalculatorFallback() {
   return (
@@ -14,14 +15,16 @@ export default function Page() {
   return (
     <main className="bg-premium min-h-screen text-white">
       <div className="relative mx-auto max-w-6xl px-5 py-10 md:py-14">
+        {/* Top-right contact CTA (modal trigger) */}
+        <div className="absolute right-5 top-6 md:right-6 md:top-8">
+          <ContactCta />
+        </div>
+
         <header className="mb-6 md:mb-10 text-center">
-          {/* Line 1 */}
           <h1 className="text-3xl font-extrabold tracking-tight md:text-5xl whitespace-nowrap">
             PriceIQ.
           </h1>
-
-          {/* Line 2 */}
-          <p className="mt-1 text-white/70 text-lg md:text-2xl whitespace-nowrap">
+          <p className="mt-1 text-lg text-white/70 md:text-2xl whitespace-nowrap">
             See the real cost of getting paid.
           </p>
         </header>
@@ -30,6 +33,11 @@ export default function Page() {
           <Calculator />
         </Suspense>
       </div>
+
+      {/* Footer */}
+      <footer className="mt-12 border-t border-white/10 py-6 text-center text-xs text-white/50">
+        © {new Date().getFullYear()} PriceIQ. All rights reserved.
+      </footer>
     </main>
   );
 }

@@ -1262,7 +1262,7 @@ export function ResultsCard(props: {
             <div className="flex h-8 w-8 items-center justify-center rounded-full border border-amber-300/35 bg-amber-400/15 text-sm font-extrabold text-amber-200 shadow-[0_16px_40px_rgba(0,0,0,0.6)]">
               2
             </div>
-            <h2 className="text-lg font-bold text-white">Results</h2>
+            <h2 className="text-lg font-bold text-white">Outcome</h2>
           </div>
 
           <p className="mt-2 max-w-md text-sm text-white/60">{subtitle}</p>
