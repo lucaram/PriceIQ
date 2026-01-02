@@ -1801,8 +1801,7 @@ export function InputsCard(props: {
 
             <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
               <p className="max-w-md text-sm text-white/60">
-                Choose your payment provider and configure the product or service you’re selling to see how your fee assumptions impact your revenue.
-              </p>
+Understand how pricing decisions impact your earnings.              </p>
             </div>
           </div>
         </div>
@@ -2316,7 +2315,7 @@ export function InputsCard(props: {
                   <div className="md:col-span-2">
                     <Banner
                       tone="info"
-                      text="Hint - Leave blank for the provider default. Enter values to override fee % or fixed fee. If Custom Provider is selected, fees are initially set to 0. Best to use for what-if scenarios."
+                      text="Hint - Leave blank to use defaults. Override values for what-if scenarios."
                     />
                   </div>
                 </div>
@@ -2347,7 +2346,7 @@ export function InputsCard(props: {
                     </div>
                   ) : null}
 
-                  <div className="grid gap-5 md:grid-cols-2 justify-items-center">
+                  <div className="grid gap-5 md:grid-cols-2 items-start">
                     <div>
                       <div className="flex items-center gap-2">
                         <LabelRow label="Platform fee" tip={platformFeeTip} containerRef={cardRef} />
@@ -2629,7 +2628,7 @@ export function InputsCard(props: {
                             <div className="grid gap-5 md:grid-cols-3">
                               <div>
                                 <LabelRow
-                                  label="Transactions / month"
+                                  label="TX / month"
                                   tip={
                                     <>
                                       How many customer payments you expect per month.
@@ -2661,7 +2660,7 @@ export function InputsCard(props: {
 
                               <div>
                                 <LabelRow
-                                  label="Refund rate %"
+                                  label="Refund %"
                                   tip={
                                     <>
                                       Percentage of transactions that refund (or chargeback) per month.
@@ -2684,33 +2683,32 @@ export function InputsCard(props: {
                                 />
                               </div>
 
-                              <div className="flex items-start justify-end">
-                                <div className="w-full md:w-[260px]">
-                                  <LabelRow
-                                    label="Allocation"
-                                    tip={
-                                      <>
-                                        Each tier represents a basket at a price point + currency FX assumption.
-                                        {"\n\n"}
-                                        Shares should add up to 100% for a full allocation.
-                                      </>
-                                    }
-                                    containerRef={cardRef}
-                                    right={<BadgePill text={volumeAllocatedBadge.text} tone={volumeAllocatedBadge.tone} />}
-                                  />
-                                  <Banner
-                                    tone={Math.abs(volumeShareSum - 100) < 1e-6 ? "success" : "warning"}
-                                    text={
-                                      Math.abs(volumeShareSum - 100) < 1e-6
-                                        ? "Your tiers are fully allocated (100%)."
-                                        : volumeShareSum < 100
-                                        ? "Your tiers are under-allocated. Increase shares until they total 100%."
-                                        : "Your tiers are over-allocated. Reduce shares until they total 100%."
-                                    }
-                                  />
-                                </div>
-                              </div>
-                            </div>
+<div className="flex items-start justify-end">
+  <div className="w-full md:w-[260px]">
+    <LabelRow
+      label=""
+      containerRef={cardRef}
+      right={
+        <div className="flex items-center gap-2">
+          <BadgePill text={volumeAllocatedBadge.text} tone={volumeAllocatedBadge.tone} />
+
+          <InfoTip
+            text={
+              <>
+                Each tier represents a basket at a price point + currency FX assumption.
+                {"\n\n"}
+                Shares should add up to 100% for a full allocation.
+              </>
+            }
+            containerRef={cardRef}
+          />
+        </div>
+      }
+    />
+  </div>
+</div></div>
+
+
 
                             <MiniDivider />
 
@@ -2792,7 +2790,7 @@ export function InputsCard(props: {
                                         {/* Tier price */}
                                         <div>
                                           <LabelRow
-                                            label={`Tier price (${currencySymbol})`}
+                                            label={`Price (${currencySymbol})`}
                                             tip={
                                               <>
                                                 Customer price for this basket tier.
@@ -2942,7 +2940,7 @@ export function InputsCard(props: {
                               <div className="md:col-span-2">
                                 <Banner
                                   tone="info"
-                                  text="Hint - Use tiers to model mixed baskets (different prices and FX assumptions). Shares should total 100% for accurate projections. This tool doesn’t change your single-transaction Results — it estimates monthly totals."
+                                  text="Hint - Use tiers to model mixed pricing. Shares should total 100%. Affects monthly totals only."
                                 />
                               </div>
                             </div>

@@ -441,8 +441,7 @@ export function getUiPolicy(input: {
     tone: "info",
     title: "Hint - Platform fees",
     text:
-      "Use Platform fee % only if you take a marketplace/platform cut. " +
-      "It is subtracted from the transaction because it’s money you retain from the charge, not an extra fee added on top for the customer.",
+      "Use only if you take a platform cut. It’s deducted from the transaction, not added to the customer price." 
   };
 
   if (cardsLike) {

@@ -1,4 +1,3 @@
-// src/components/calculator/ScenarioCompare.tsx
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -43,7 +42,7 @@ export function ScenarioCompare(props: {
 }) {
   const { rows, scenarioUrls } = props;
 
-  // ✅ Hooks MUST be unconditional (no early return before these)
+  // ✅ Hooks MUST be unconditional
   const [copiedId, setCopiedId] = useState<CopiedId>(null);
   const timerRef = useRef<number | null>(null);
 
@@ -100,7 +99,6 @@ export function ScenarioCompare(props: {
     }
   }
 
-  // ✅ Safe base row (and we only render table when rows.length > 1)
   const base = rows[0];
 
   // ✅ PostHog: comparison viewed (visible state only)
@@ -120,16 +118,127 @@ export function ScenarioCompare(props: {
     });
   }, [rows.length, base, scenarioUrls]);
 
-  // ✅ Now it's safe to early-return after hooks
   if (rows.length <= 1 || !base) return null;
 
-  return (
-    <section className="surface mt-6 rounded-3xl p-6 md:p-7">
+  const metrics: Array<{
+    label: string;
+    get: (r: ScenarioRow) => string;
+    isNet?: boolean;
+  }> = [
+    { label: "Charge", get: (r) => fmt(r.symbol, r.gross) },
+    { label: "Stripe fee", get: (r) => fmt(r.symbol, r.stripeFee) },
+    { label: "FX fee", get: (r) => fmt(r.symbol, r.fxFee) },
+    { label: "Platform fee", get: (r) => fmt(r.symbol, r.platformFee) },
+    { label: "Net you keep", get: (r) => fmt(r.symbol, r.net), isNet: true },
+  ];
+
+  // ✅ Compact mobile card view (no huge table width)
+  const MobileView = (
+    <section className="surface mt-4 rounded-3xl p-4 md:hidden">
+      <div className="mb-3">
+        <h3 className="text-sm font-semibold text-white/90">Scenario comparison</h3>
+        <p className="mt-1 text-[11px] leading-snug text-white/60">
+          Compact view. Deltas are vs <span className="text-white/80">Scenario 1</span>.
+        </p>
+      </div>
+
+      <div className="space-y-2.5">
+        {rows.map((r, idx) => {
+          const url = scenarioUrls?.[r.id] ?? "";
+          const canCopy = Boolean(url);
+
+          const deltaNet =
+            idx === 0
+              ? null
+              : Number.isFinite(r.net) && Number.isFinite(base.net)
+              ? r.net - base.net
+              : null;
+
+          return (
+            <div key={r.id} className="rounded-2xl border border-white/10 bg-white/5 p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <div className="truncate text-sm font-semibold text-white/90">{r.name}</div>
+                    {idx === 0 ? (
+                      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-white/60">
+                        Base
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <div className="mt-0.5 text-[11px] text-white/55">
+                    {idx === 0 ? "Reference scenario" : "Compared to Scenario 1"}
+                  </div>
+                </div>
+
+                {canCopy ? (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      safeCapture("compare_copy_link", {
+                        app: "PriceIQ",
+                        scenario_id: r.id,
+                        scenario_name: r.name,
+                        scenario_index: idx + 1,
+                        scenario_count: rows.length,
+                        has_url: Boolean(url),
+                      });
+
+                      await copyText(url, r.id);
+                    }}
+                    className={[
+                      "shrink-0 rounded-full border px-2.5 py-1 text-[11px] leading-none transition",
+                      copiedId === r.id
+                        ? "border-emerald-400/40 bg-emerald-500/20 text-emerald-200 shadow-[0_0_0_1px_rgba(16,185,129,0.35)]"
+                        : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10",
+                    ].join(" ")}
+                    title="Copy share link for this scenario"
+                  >
+                    {copiedId === r.id ? "✓ Copied" : "Copy link"}
+                  </button>
+                ) : null}
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2">
+                {metrics.map((m) => {
+                  const isNet = Boolean(m.isNet);
+                  const v = m.get(r);
+
+                  const showDelta = isNet && idx !== 0 && deltaNet !== null;
+                  const deltaText =
+                    showDelta && deltaNet !== null
+                      ? `(${deltaNet >= 0 ? "+" : ""}${fmt(r.symbol, deltaNet)})`
+                      : null;
+
+                  return (
+                    <div key={`${r.id}:${m.label}`} className="min-w-0">
+                      <div className="text-[10px] uppercase tracking-wide text-white/45">{m.label}</div>
+                      <div className="mt-0.5 flex items-baseline gap-2">
+                        <div className="truncate text-sm font-medium text-white/85">{v}</div>
+                        {deltaText ? (
+                          <div className={["text-[11px]", deltaNet! >= 0 ? "text-emerald-300" : "text-rose-300"].join(" ")}>
+                            {deltaText}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+
+  // ✅ Desktop table view (unchanged)
+  const DesktopView = (
+    <section className="surface mt-6 hidden rounded-3xl p-6 md:block md:p-7">
       <div className="mb-4">
         <h3 className="text-sm font-semibold text-white/90">Scenario comparison</h3>
-        <p className="mt-1 text-xs text-white/60">
-          Compare up to 3 pricing setups. Deltas are vs Scenario 1.
-        </p>
+        <p className="mt-1 text-xs text-white/60">Compare up to 3 pricing setups. Deltas are vs Scenario 1.</p>
       </div>
 
       <div className="overflow-x-auto">
@@ -151,7 +260,6 @@ export function ScenarioCompare(props: {
                         <button
                           type="button"
                           onClick={async () => {
-                            // ✅ PostHog: share intent
                             safeCapture("compare_copy_link", {
                               app: "PriceIQ",
                               scenario_id: r.id,
@@ -209,12 +317,7 @@ export function ScenarioCompare(props: {
                         <span>{v(r)}</span>
 
                         {delta !== null ? (
-                          <span
-                            className={[
-                              "text-xs",
-                              delta >= 0 ? "text-emerald-300" : "text-rose-300",
-                            ].join(" ")}
-                          >
+                          <span className={["text-xs", delta >= 0 ? "text-emerald-300" : "text-rose-300"].join(" ")}>
                             ({delta >= 0 ? "+" : ""}
                             {fmt(r.symbol, delta)})
                           </span>
@@ -229,5 +332,12 @@ export function ScenarioCompare(props: {
         </table>
       </div>
     </section>
+  );
+
+  return (
+    <>
+      {MobileView}
+      {DesktopView}
+    </>
   );
 }

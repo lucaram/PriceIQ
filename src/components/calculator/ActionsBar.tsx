@@ -86,7 +86,6 @@ function buildVerticalCsv(rows: CsvKV, shareUrl: string) {
   const ordered: Array<{ label: string; value: string }> = [
     // Meta
     { label: "meta.exported_at_local", value: nowLocalStamp() },
-    //{ label: "meta.share_url", value: String(shareUrl ?? "") },
 
     // Context
     { label: "context.app", value: get("app", "PriceIQ") },
@@ -97,7 +96,7 @@ function buildVerticalCsv(rows: CsvKV, shareUrl: string) {
     { label: "context.custom_provider_label", value: get("custom_provider_label", "") },
     { label: "context.region", value: get("region", "") },
     { label: "context.mode", value: get("mode", "") },
-    { label: "context.tier", value: getOff("tier") }, // Stripe-only; calculator already sets Off for non-stripe
+    { label: "context.tier", value: getOff("tier") },
     { label: "context.currency_symbol", value: get("currency_symbol", "") },
 
     // Inputs / controls
@@ -154,7 +153,6 @@ function buildVerticalCsv(rows: CsvKV, shareUrl: string) {
     { label: "advanced.volume_monthly_net_after_refunds", value: getZero("volume_monthly_net_after_refunds") },
   ];
 
-  // Extras (future-proof)
   const seenRaw = new Set<string>([
     "app",
     "scenario",
@@ -218,35 +216,20 @@ function buildVerticalCsv(rows: CsvKV, shareUrl: string) {
     ...extras.map((r) => `${csvEscape(r.label)},${csvEscape(r.value)}`),
   ];
 
-  // Excel-friendly BOM
   return "\uFEFF" + lines.join("\r\n");
 }
 
-/**
- * ✅ Excel SpreadsheetML (.xls) export (vertical label/value) with formatting:
- * - Column A (label): left + bold
- * - Column B (value): ALWAYS right-aligned (even text)
- *
- * NOTE: CSV cannot force alignment; Excel can.
- */
 function buildVerticalXls(rows: CsvKV, shareUrl: string) {
   const csv = buildVerticalCsv(rows, shareUrl);
-
-  // Parse the CSV rows back into kv pairs (safe because we built it)
-  // We avoid writing a second schema generator and keep both outputs consistent.
   const lines = csv.replace(/^\uFEFF/, "").split(/\r?\n/).filter(Boolean);
-
-  // Remove header "label,value"
   const dataLines = lines.slice(1);
 
-  // Reconstruct pairs (best-effort: split on first comma; our labels never contain commas)
   const pairs: CsvKV = dataLines.map((ln) => {
     const idx = ln.indexOf(",");
     if (idx === -1) return { label: ln, value: "" };
     const label = ln.slice(0, idx);
     const value = ln.slice(idx + 1);
 
-    // Remove csv quotes (basic)
     const unq = (s: string) => {
       const t = String(s ?? "");
       if (t.startsWith('"') && t.endsWith('"')) return t.slice(1, -1).replace(/""/g, '"');
@@ -278,7 +261,6 @@ function buildVerticalXls(rows: CsvKV, shareUrl: string) {
       <Font ss:Bold="1"/>
     </Style>
 
-    <!-- ✅ Always right-align the value column, EVEN for text -->
     <Style ss:ID="sValueRight">
       <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>
     </Style>
@@ -305,7 +287,7 @@ function buildVerticalXls(rows: CsvKV, shareUrl: string) {
       </Row>
 
       ${pairs
-        .filter((p) => String(p.label ?? "").trim() !== "meta.exported_at_local") // avoid duplicate
+        .filter((p) => String(p.label ?? "").trim() !== "meta.exported_at_local")
         .map((p) => {
           const label = xmlEscape(String(p.label ?? ""));
           const value = xmlEscape(String(p.value ?? ""));
@@ -350,7 +332,8 @@ function buildCoreProps(csvRows: CsvKV) {
   const platformFeePercent = Number(m["platform_fee_percent"] ?? 0) || 0;
   const vatPercent = Number(m["vat_percent"] ?? 0) || 0;
 
-  const feeOverridesOn = isTruthyOn(String(m["fee_overrides_on"] ?? "")) || !!(m["override_percent"] || m["override_fixed"]);
+  const feeOverridesOn =
+    isTruthyOn(String(m["fee_overrides_on"] ?? "")) || !!(m["override_percent"] || m["override_fixed"]);
   const breakEvenOn = isTruthyOn(String(m["break_even_on"] ?? ""));
   const sensitivityOn = isTruthyOn(String(m["fee_impact_on"] ?? ""));
   const volumeOn = isTruthyOn(String(m["volume_on"] ?? ""));
@@ -392,7 +375,6 @@ function buildCoreProps(csvRows: CsvKV) {
   };
 }
 
-// ✅ Clean taxonomy (aligned to your request)
 const EVENTS = {
   SHARE_COPY_LINK: "calc_share_copy_link",
   SHARE_COPY_BREAKDOWN: "calc_share_copy_breakdown",
@@ -429,7 +411,6 @@ export function ActionsBar(props: { shareUrl: string; copyText: string; csvRows:
     const payload = String(text ?? "");
     const event = kind === "link" ? EVENTS.SHARE_COPY_LINK : EVENTS.SHARE_COPY_BREAKDOWN;
 
-    // ✅ Attempt
     safeCapture(event, {
       ...coreProps,
       stage: "attempt",
@@ -450,11 +431,8 @@ export function ActionsBar(props: { shareUrl: string; copyText: string; csvRows:
       });
 
       return;
-    } catch {
-      // fallback
-    }
+    } catch {}
 
-    // ✅ Fallback attempt
     safeCapture(event, {
       ...coreProps,
       stage: "attempt",
@@ -502,7 +480,6 @@ export function ActionsBar(props: { shareUrl: string; copyText: string; csvRows:
         success: false,
         text_len: payload.length,
       });
-      // silent fail
     }
   }
 
@@ -549,7 +526,6 @@ export function ActionsBar(props: { shareUrl: string; copyText: string; csvRows:
         bytes: csvWithBom.length,
         format: "csv",
       });
-      // ignore
     }
   }
 
@@ -593,47 +569,58 @@ export function ActionsBar(props: { shareUrl: string; copyText: string; csvRows:
         bytes: xlsXml.length,
         format: "xls",
       });
-      // ignore
     }
   }
 
-  const baseBtn = "rounded-full border px-3 py-1.5 text-xs transition";
+  const baseBtnDesktop = "rounded-full border px-3 py-1.5 text-xs transition";
+  const baseBtnMobile = "rounded-full border px-3 py-1 text-[11px] leading-none transition";
+
   const normalBtn = "border-white/10 bg-white/5 text-white/80 hover:bg-white/10";
   const successBtn =
     "border-emerald-400/40 bg-emerald-500/20 text-emerald-200 shadow-[0_0_0_1px_rgba(16,185,129,0.35)]";
 
+  const btnClass = (kind: CopiedKind) =>
+    [
+      "md:" + baseBtnDesktop,
+      baseBtnMobile,
+      copied === kind ? successBtn : normalBtn,
+      "whitespace-nowrap",
+    ].join(" ");
+
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <button
-        type="button"
-        onClick={() => copyToClipboard(shareUrl, "link")}
-        className={`${baseBtn} ${copied === "link" ? successBtn : normalBtn}`}
-      >
-        {copied === "link" ? "✓ Copied" : "Copy link to reuse"}
+    <div
+      className={[
+        "md:flex md:flex-wrap md:items-center md:gap-2",
+        "flex items-center gap-2 overflow-x-auto md:overflow-visible",
+        "flex-nowrap md:flex-wrap",
+        "[-webkit-overflow-scrolling:touch]",
+        "pb-0.5",
+      ].join(" ")}
+    >
+      <button type="button" onClick={() => copyToClipboard(shareUrl, "link")} className={btnClass("link")}>
+        <span className="md:inline hidden">{copied === "link" ? "✓ Copied" : "Copy link to reuse"}</span>
+        {/* ✅ mobile label updated */}
+        <span className="md:hidden inline">{copied === "link" ? "✓ Copied" : "Copy link"}</span>
       </button>
 
       <button
         type="button"
         onClick={() => copyToClipboard(copyText, "breakdown")}
-        className={`${baseBtn} ${copied === "breakdown" ? successBtn : normalBtn}`}
+        className={btnClass("breakdown")}
       >
-        {copied === "breakdown" ? "✓ Breakdown copied" : "Copy breakdown"}
+        <span className="md:inline hidden">{copied === "breakdown" ? "✓ Breakdown copied" : "Copy breakdown"}</span>
+        {/* ✅ mobile label updated */}
+        <span className="md:hidden inline">{copied === "breakdown" ? "✓ Copied" : "Copy breakdown"}</span>
       </button>
 
-      <button
-        type="button"
-        onClick={downloadCsv}
-        className={`${baseBtn} ${copied === "csv" ? successBtn : normalBtn}`}
-      >
-        {copied === "csv" ? "✓ Downloaded" : "Download CSV"}
+      <button type="button" onClick={downloadCsv} className={btnClass("csv")}>
+        <span className="md:inline hidden">{copied === "csv" ? "✓ Downloaded" : "Download CSV"}</span>
+        <span className="md:hidden inline">{copied === "csv" ? "✓ CSV" : "CSV"}</span>
       </button>
 
-      <button
-        type="button"
-        onClick={downloadXls}
-        className={`${baseBtn} ${copied === "xls" ? successBtn : normalBtn}`}
-      >
-        {copied === "xls" ? "✓ Downloaded" : "Download Excel"}
+      <button type="button" onClick={downloadXls} className={btnClass("xls")}>
+        <span className="md:inline hidden">{copied === "xls" ? "✓ Downloaded" : "Download Excel"}</span>
+        <span className="md:hidden inline">{copied === "xls" ? "✓ Excel" : "Excel"}</span>
       </button>
     </div>
   );

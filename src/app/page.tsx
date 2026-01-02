@@ -14,13 +14,16 @@ export default function Page() {
   return (
     <main className="bg-premium min-h-screen text-white">
       <div className="relative mx-auto max-w-6xl px-5 py-10 md:py-14">
-        <header className="mb-10">
-<h1 className="mt-5 max-w-6xl text-3xl font-extrabold tracking-tight md:text-5xl md:whitespace-nowrap">
-  PriceIQ.
-  <span className="block text-white/70">
-    See the real cost of getting paid.
-  </span>
-</h1>
+        <header className="mb-6 md:mb-10 text-center">
+          {/* Line 1 */}
+          <h1 className="text-3xl font-extrabold tracking-tight md:text-5xl whitespace-nowrap">
+            PriceIQ.
+          </h1>
+
+          {/* Line 2 */}
+          <p className="mt-1 text-white/70 text-lg md:text-2xl whitespace-nowrap">
+            See the real cost of getting paid.
+          </p>
         </header>
 
         <Suspense fallback={<CalculatorFallback />}>

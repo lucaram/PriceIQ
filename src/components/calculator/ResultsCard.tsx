@@ -550,7 +550,7 @@ export function ResultsCard(props: {
     if (useReverse)
       return "This shows the customer price required to reach your target net outcome after fees with your chosen provider.";
 
-    return "This shows the outcome of your pricing model after all fees and assumptions are applied with your chosen provider.";
+    return "Understand outcomes and the factors shaping your revenue.";
   }, [useReverse, marginOn]);
 
   const hasTools = Boolean(breakEven) || Boolean(sensitivity) || Boolean(volumeOn);
@@ -1688,7 +1688,7 @@ export function ResultsCard(props: {
             >
               <div className="flex items-start gap-2">
                 <div>
-                  <div className="text-sm font-semibold text-white">How PriceIQ estimates work.</div>
+                  <div className="text-sm font-semibold text-white">How PriceIQ estimates are applied.</div>
                   <div className="mt-1 text-xs text-white/55">Assumptions, inclusions, exclusions.</div>
                 </div>
               </div>
