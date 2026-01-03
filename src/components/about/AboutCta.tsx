@@ -130,49 +130,24 @@ export function AboutCta() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1">
-  <Lightbulb className="h-4 w-4 text-amber-300/90" />
-  <span className="flex items-baseline text-[11px] font-medium text-amber-200/90">
-    About PriceIQ
-    {/* Scaled-down Branding Square */}
-<span
-  aria-hidden
-  className="
-    ml-[2px]
-    h-[4px] w-[4px]
-    translate-y-[1.5px]
-    rounded-[1px]
-    bg-amber-400
-  "
-/>
-  </span>
-</div>
+                      <Lightbulb className="h-4 w-4 text-amber-300/90" />
+                      <span className="flex items-baseline text-[11px] font-medium text-amber-200/90">
+                        About PriceIQ
+                        <span aria-hidden className="ml-[2px] h-[4px] w-[4px] translate-y-[1.5px] rounded-[1px] bg-amber-400" />
+                      </span>
+                    </div>
 
                     <h2 className="mt-3 text-[20px] md:text-2xl font-semibold tracking-tight">
                       See the real cost of getting paid.
                     </h2>
 
                     <p className="mt-1 text-[13px] md:text-sm text-white/65 max-w-[60ch]">
-                      Clear insight for pricing decisions.
+                      Clear insight for pricing decisions affecting your business.
                     </p>
                   </div>
-
-                  <button
-                    onClick={() => setOpen(false)}
-                    className="
-                      shrink-0
-                      rounded-full border border-white/15
-                      bg-white/5 p-2
-                      text-white/70
-                      transition hover:bg-white/10 hover:text-white/85
-                      focus:outline-none focus:ring-2 focus:ring-amber-400/30
-                    "
-                    aria-label="Close"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
                 </div>
 
-                {/* Value cards (2 total on mobile + desktop) */}
+                {/* Value cards */}
                 <div className="mt-4 md:mt-5">
                   <div className="grid grid-cols-2 gap-3">
                     <MiniCard
@@ -213,32 +188,55 @@ export function AboutCta() {
                       Model how pricing shape what you keep.
                     </Bullet>
                     <Bullet>
-                      Compare scenarios to choose the bestmodel for your business.
+                      Compare scenarios to choose the best model for your business.
                     </Bullet>
                   </div>
                 </div>
 
-                {/* CTA row */}
-                <div className="mt-4 md:mt-5 flex items-center justify-between gap-3">
-                  <div className="text-[11px] text-white/55 leading-snug">
-                    Model your{" "}
-                    <span className="text-white/80">Decisions</span>, review your {" "}
-                    <span className="text-white/80">Outcome</span>.
+                {/* ✅ UPDATED: Professional CTA Row */}
+                <div className="mt-6 md:mt-8 flex items-center justify-between border-t border-white/[0.08] pt-5 md:pt-6">
+                  <div className="flex items-center gap-4">
+                    <span className="text-[10px] font-medium uppercase tracking-[0.15em] text-white/40">
+                      Follow our Journey
+                    </span>
+                    <a
+                      href="https://x.com/PriceIq25489"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="
+                        group relative flex items-center justify-center 
+                        h-9 w-9 rounded-full 
+                        bg-gradient-to-b from-white/[0.08] to-transparent
+                        border border-white/[0.12] 
+                        text-white/70 shadow-inner
+                        transition-all duration-300 ease-out
+                        hover:border-white/30 hover:text-white hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]
+                      "
+                      aria-label="Follow PriceIQ on X"
+                    >
+                      <svg 
+                        viewBox="0 0 24 24" 
+                        className="h-3.5 w-3.5 fill-current transition-transform duration-500 group-hover:rotate-[360deg]" 
+                        aria-hidden="true"
+                      >
+                        <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z" />
+                      </svg>
+                      <span className="absolute inset-0 rounded-full opacity-0 transition-opacity duration-500 group-hover:opacity-100 bg-white/[0.03]" />
+                    </a>
                   </div>
 
                   <button
                     onClick={() => setOpen(false)}
                     className="
-                      inline-flex items-center gap-2
-                      rounded-full border border-amber-400/25
-                      bg-amber-400/10 px-4 py-2
-                      text-xs font-medium text-amber-200
-                      transition hover:bg-amber-400/20
-                      focus:outline-none focus:ring-2 focus:ring-amber-400/30
+                      group relative inline-flex items-center gap-2.5
+                      rounded-full bg-white px-5 py-2.5
+                      text-[13px] font-semibold text-black
+                      transition-all duration-300
+                      hover:bg-amber-400 hover:scale-[1.02] active:scale-[0.98]
                     "
                   >
-                    Explore
-                    <ArrowRight className="h-4 w-4 text-amber-200/90" />
+                    <span>Explore PriceIQ</span>
+                    <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
                   </button>
                 </div>
               </div>
