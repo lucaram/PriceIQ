@@ -195,9 +195,9 @@ export function AboutCta() {
 
                 {/* ✅ UPDATED: Professional CTA Row */}
                 <div className="mt-6 md:mt-8 flex items-center justify-between border-t border-white/[0.08] pt-5 md:pt-6">
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-1">
                     <span className="text-[10px] font-medium uppercase tracking-[0.15em] text-white/40">
-                      Follow our Journey
+                      Follow us
                     </span>
                     <a
                       href="https://x.com/PriceIq25489"
