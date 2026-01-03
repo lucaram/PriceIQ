@@ -1,5 +1,6 @@
 // src/app/page.tsx
 import { Suspense } from "react";
+import Link from "next/link";
 import { Calculator } from "@/components/calculator/Calculator";
 import { ContactCta } from "@/components/contact/ContactCta";
 import { AboutCta } from "@/components/about/AboutCta";
@@ -55,8 +56,37 @@ export default function Page() {
         </Suspense>
       </div>
 
-      <footer className="mt-12 border-t border-white/10 py-6 text-center text-xs text-white/50">
-        © {new Date().getFullYear()} PriceIQ. All rights reserved.
+      <footer className="mt-12 border-t border-white/10 py-6">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-center gap-2 px-5 text-center text-xs text-white/50 md:flex-row md:gap-4">
+          {/* Left: Terms */}
+          <Link
+            href="/terms"
+            className="
+              text-white/55 underline decoration-white/20
+              hover:text-white hover:decoration-white/50
+              transition
+            "
+          >
+            Terms of Service
+          </Link>
+
+          {/* Center: Copyright */}
+          <span className="text-white/50">
+            © {new Date().getFullYear()} PriceIQ. All rights reserved.
+          </span>
+
+          {/* Right: Privacy */}
+          <Link
+            href="/privacy"
+            className="
+              text-white/55 underline decoration-white/20
+              hover:text-white hover:decoration-white/50
+              transition
+            "
+          >
+            Privacy Policy
+          </Link>
+        </div>
       </footer>
     </main>
   );
