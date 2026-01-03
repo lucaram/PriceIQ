@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PriceIQ — See the real cost of getting paid",
+  title: "PriceIQ",
   description:
     "PriceIQ helps you understand the true cost of getting paid. Model fees, FX, platform costs, and margins with clarity.",
   openGraph: {

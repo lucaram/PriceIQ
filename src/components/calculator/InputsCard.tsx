@@ -1746,15 +1746,52 @@ const breakEvenTip = (
   </>
 );
 
-  const feeImpactTip = (
-    <>
-      Estimates net change if selected fee(s) drift by <strong>±Δ</strong>.
-      {"\n\n"}
-      (Currently calculated using Stripe math in the engine.)
-    </>
-  );
+const isStripe = providerId === "stripe";
 
-  const affectedFeeTip = <>Choose which fee(s) drift during the fee impact simulation.</>;
+const feeImpactTip = (
+  <>
+    <strong>Fee impact ±</strong> shows how your <strong>net payout</strong> changes
+    when selected fee(s) move slightly <strong>up or down</strong>.
+    {"\n\n"}
+    <strong>Δ (delta)</strong> is the size of that simulated change. For example,
+    Δ = 1% means fees are tested at <strong>+1%</strong> and <strong>−1%</strong>.
+    {"\n\n"}
+    <strong>Example:</strong> if a £100 charge currently nets you £95, a Δ of 1%
+    shows what your net becomes if fees increase or decrease by 1%.
+    {"\n\n"}
+    {isStripe ? (
+      <>Calculated using Stripe percent + fixed-fee math.</>
+    ) : (
+      <>
+        Calculated using the current quoted provider fee as an effective fee
+        baseline (approximate for complex pricing).
+      </>
+    )}
+  </>
+);
+
+
+
+const affectedFeeTip = (
+  <>
+    <strong>Affected fee</strong> selects which cost is allowed to change during
+    the fee impact simulation.
+    {"\n\n"}
+    <strong>Stripe fee</strong>: tests changes in the payment processor fee only
+    (for example, card mix or pricing tier changes).
+    {"\n\n"}
+    <strong>FX fee</strong>: tests changes in currency conversion costs only.
+    {"\n\n"}
+    <strong>Platform fee</strong>: tests changes in your marketplace or platform
+    cut only.
+    {"\n\n"}
+    <strong>All fees</strong>: tests all selected fees moving together by ±Δ.
+    {"\n\n"}
+    <strong>Example:</strong> if Δ = 1% and <em>Stripe fee</em> is selected, only
+    the Stripe fee is increased and decreased by 1% while other fees stay
+    unchanged.
+  </>
+);
 
   const feeOverrideTip = (
     <>
