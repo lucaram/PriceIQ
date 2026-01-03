@@ -550,7 +550,7 @@ export function ResultsCard(props: {
     if (useReverse)
       return "This shows the customer price required to reach your target net outcome after fees with your chosen provider.";
 
-    return "Understand cost dynamics and profitability.";
+    return "Understand cost dynamics & profitability";
   }, [useReverse, marginOn]);
 
   const hasTools = Boolean(breakEven) || Boolean(sensitivity) || Boolean(volumeOn);

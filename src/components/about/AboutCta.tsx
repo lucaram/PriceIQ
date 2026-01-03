@@ -130,11 +130,22 @@ export function AboutCta() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1">
-                      <Lightbulb className="h-4 w-4 text-amber-300/90" />
-                      <span className="text-[11px] font-medium text-amber-200/90">
-                        About PriceIQ
-                      </span>
-                    </div>
+  <Lightbulb className="h-4 w-4 text-amber-300/90" />
+  <span className="flex items-baseline text-[11px] font-medium text-amber-200/90">
+    About PriceIQ
+    {/* Scaled-down Branding Square */}
+<span
+  aria-hidden
+  className="
+    ml-[2px]
+    h-[4px] w-[4px]
+    translate-y-[1.5px]
+    rounded-[1px]
+    bg-amber-400
+  "
+/>
+  </span>
+</div>
 
                     <h2 className="mt-3 text-[20px] md:text-2xl font-semibold tracking-tight">
                       See the real cost of getting paid.
