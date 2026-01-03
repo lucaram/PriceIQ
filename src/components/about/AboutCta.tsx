@@ -92,14 +92,37 @@ export function AboutCta() {
       <AnimatePresence>
         {open && (
           <>
-            {/* Backdrop */}
+            {/* ✅ ULTRA Backdrop (stronger blur/shadow effect) */}
             <motion.div
-              className="fixed inset-0 z-[90] bg-black/70 backdrop-blur-md"
+              className="fixed inset-0 z-[90]"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setOpen(false)}
-            />
+              aria-hidden="true"
+            >
+              {/* Layer 1 — insane blur */}
+              <div
+                className="
+                  absolute inset-0
+                  bg-black/40
+                  backdrop-blur-[48px]
+                  backdrop-saturate-[180%]
+                  backdrop-brightness-[55%]
+                "
+              />
+
+              {/* Layer 2 — contrast kill */}
+              <div className="absolute inset-0 bg-black/45" />
+
+              {/* Layer 3 — vignette */}
+              <div
+                className="
+                  absolute inset-0
+                  bg-[radial-gradient(ellipse_at_center,transparent_20%,rgba(0,0,0,0.85)_100%)]
+                "
+              />
+            </motion.div>
 
             {/* Modal */}
             <motion.div
@@ -113,8 +136,8 @@ export function AboutCta() {
                 md:max-w-[720px]
                 rounded-t-3xl md:rounded-3xl
                 border border-white/15
-                bg-black/80 backdrop-blur-xl
-                shadow-[0_45px_140px_rgba(0,0,0,0.85)]
+                bg-black/85 backdrop-blur-2xl
+                shadow-[0_60px_220px_rgba(0,0,0,0.95)]
                 overflow-hidden
               "
               role="dialog"
@@ -133,7 +156,10 @@ export function AboutCta() {
                       <Lightbulb className="h-4 w-4 text-amber-300/90" />
                       <span className="flex items-baseline text-[11px] font-medium text-amber-200/90">
                         About PriceIQ
-                        <span aria-hidden className="ml-[2px] h-[4px] w-[4px] translate-y-[1.5px] rounded-[1px] bg-amber-400" />
+                        <span
+                          aria-hidden
+                          className="ml-[2px] h-[4px] w-[4px] translate-y-[1.5px] rounded-[1px] bg-amber-400"
+                        />
                       </span>
                     </div>
 
@@ -184,9 +210,7 @@ export function AboutCta() {
                   </div>
 
                   <div className="mt-3 grid gap-2.5">
-                    <Bullet>
-                      Model how pricing shape what you keep.
-                    </Bullet>
+                    <Bullet>Model how pricing shape what you keep.</Bullet>
                     <Bullet>
                       Compare scenarios to choose the best model for your business.
                     </Bullet>
@@ -214,9 +238,9 @@ export function AboutCta() {
                       "
                       aria-label="Follow PriceIQ on X"
                     >
-                      <svg 
-                        viewBox="0 0 24 24" 
-                        className="h-3.5 w-3.5 fill-current transition-transform duration-500 group-hover:rotate-[360deg]" 
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="h-3.5 w-3.5 fill-current transition-transform duration-500 group-hover:rotate-[360deg]"
                         aria-hidden="true"
                       >
                         <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z" />

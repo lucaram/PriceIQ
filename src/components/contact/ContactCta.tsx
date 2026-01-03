@@ -235,14 +235,37 @@ export function ContactCta() {
       <AnimatePresence>
         {open && (
           <>
-            {/* Backdrop */}
+            {/* ✅ ULTRA Backdrop (same as AboutCta) */}
             <motion.div
-              className="fixed inset-0 bg-black/70 backdrop-blur-md z-[90]"
+              className="fixed inset-0 z-[90]"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={closeAndReset}
-            />
+              aria-hidden="true"
+            >
+              {/* Layer 1 — insane blur */}
+              <div
+                className="
+                  absolute inset-0
+                  bg-black/40
+                  backdrop-blur-[48px]
+                  backdrop-saturate-[180%]
+                  backdrop-brightness-[55%]
+                "
+              />
+
+              {/* Layer 2 — contrast kill */}
+              <div className="absolute inset-0 bg-black/45" />
+
+              {/* Layer 3 — vignette */}
+              <div
+                className="
+                  absolute inset-0
+                  bg-[radial-gradient(ellipse_at_center,transparent_20%,rgba(0,0,0,0.85)_100%)]
+                "
+              />
+            </motion.div>
 
             {/* Modal */}
             <motion.div
@@ -256,8 +279,9 @@ export function ContactCta() {
                 md:max-w-[560px]
                 rounded-t-3xl md:rounded-3xl
                 border border-white/15
-                bg-black/80 backdrop-blur-xl
+                bg-black/85 backdrop-blur-2xl
                 p-5 md:p-6
+                shadow-[0_60px_220px_rgba(0,0,0,0.95)]
               "
               role="dialog"
               aria-modal="true"
@@ -347,7 +371,8 @@ export function ContactCta() {
                   <div className="mb-2 text-xs text-white-200/90 flex items-center justify-between">
                     <span>Message</span>
                     <span className="text-xs text-white/70">
-                      {Math.min(form.message.length, LIMITS.messageMax)}/{LIMITS.messageMax}
+                      {Math.min(form.message.length, LIMITS.messageMax)}/
+                      {LIMITS.messageMax}
                     </span>
                   </div>
 
@@ -376,7 +401,9 @@ export function ContactCta() {
                       Minimum {LIMITS.messageMin} characters
                     </div>
                     {show("message") ? (
-                      <div className="text-[11px] text-red-200">{errors.message}</div>
+                      <div className="text-[11px] text-red-200">
+                        {errors.message}
+                      </div>
                     ) : null}
                   </div>
                 </div>
@@ -459,7 +486,9 @@ function Field(props: {
         aria-invalid={hasError ? true : undefined}
       />
 
-      {hasError ? <div className="mt-1 text-[11px] text-red-200">{error}</div> : null}
+      {hasError ? (
+        <div className="mt-1 text-[11px] text-red-200">{error}</div>
+      ) : null}
     </div>
   );
 }
