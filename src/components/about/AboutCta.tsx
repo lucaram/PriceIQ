@@ -168,8 +168,7 @@ export function AboutCta() {
                     </h2>
 
                     <p className="mt-1 text-[13px] md:text-sm text-white/65 max-w-[60ch]">
-                      Clear insight for pricing decisions affecting your business.
-                    </p>
+PriceIQ shows what you really keep from every pricing scenario.                    </p>
                   </div>
                 </div>
 
@@ -178,8 +177,8 @@ export function AboutCta() {
                   <div className="grid grid-cols-2 gap-3">
                     <MiniCard
                       icon={<Layers3 className="h-4 w-4 text-amber-300/90" />}
-                      title="Decision-intelligence"
-                      body="Turn assumptions into clear scenarios - fast."
+                      title="Decision-modelling"
+                      body="Understand the impact of every choice - Fast."
                     />
 
                     <MiniCard
@@ -210,9 +209,9 @@ export function AboutCta() {
                   </div>
 
                   <div className="mt-3 grid gap-2.5">
-                    <Bullet>Model how pricing shape what you keep.</Bullet>
+                    <Bullet>Shape your pricing strategy, evaluate the impact.</Bullet>
                     <Bullet>
-                      Compare scenarios to choose the best model for your business.
+                      Compare scenarios, download results: no account needed, no lock-in.
                     </Bullet>
                   </div>
                 </div>
