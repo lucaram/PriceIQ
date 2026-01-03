@@ -1811,15 +1811,23 @@ export function ResultsCard(props: {
                     engine nor it provides contractual quotes.
                   </div>
 
-                  <div>
-                    <span className="font-semibold text-white/85">Included:</span> provider fees and fee override, currency region, FX, rounding,
-                    platform fees, tax (VAT) & advance tools calculations.
-                  </div>
+<div>
+  <span className="font-semibold text-white/85">Included:</span>{" "}
+  provider fees and overrides, region and currency settings, FX fees,
+  rounding, platform fees, VAT shown separately and advanced tool calculations (show separately)
+</div>
 
-                  <div>
-                    <span className="font-semibold text-white/85">Excluded:</span> disputes, chargebacks, payout
-                    delays and any external banking or settlement fees.
-                  </div>
+<div>
+  <span className="font-semibold text-white/85">Excluded:</span>{" "}
+  disputes and chargebacks, payout timing effects, hidden FX spreads,
+  operational and compliance costs and external banking or settlement fees.
+  <div className="mt-1 text-xs text-white/55">
+    Why excluded: these are event-driven, timing-based, provider/bank-specific,
+    or non-linear costs that can’t be reliably estimated per transaction.
+  </div>
+</div>
+
+
 
                   <div>
                     <span className="font-semibold text-white/85">VAT:</span> displayed separately. Net values represent
