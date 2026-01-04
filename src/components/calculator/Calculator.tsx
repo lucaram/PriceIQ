@@ -1666,7 +1666,7 @@ export function Calculator() {
               onClick={addScenario}
               className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/70 hover:bg-white/8"
             >
-              + Add scenario
+              + Add
             </button>
           ) : null}
 
@@ -1676,7 +1676,7 @@ export function Calculator() {
               onClick={() => removeScenario(activeId)}
               className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/70 hover:bg-white/8"
             >
-              Remove active
+              Remove
             </button>
           ) : null}
         </div>
