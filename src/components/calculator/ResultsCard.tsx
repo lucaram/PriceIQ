@@ -461,7 +461,8 @@ export function ResultsCard(props: {
   // ✅ NEW: override signals (display-only)
   customProviderFeePercent?: number | null;
   customFixedFee?: number | null;
-
+ providerFeePercentUsed?: number | null;
+  providerFixedFeeUsed?: number | null;
   // ✅ NEW: volume projections inputs (display + compute)
   volumeOn?: boolean;
   volumeTxPerMonth?: number;
@@ -507,7 +508,8 @@ export function ResultsCard(props: {
 
     customProviderFeePercent = null,
     customFixedFee = null,
-
+ providerFeePercentUsed = null,
+    providerFixedFeeUsed = null,
     // ✅ volume
     volumeOn = false,
     volumeTxPerMonth = 0,
@@ -573,6 +575,60 @@ export function ResultsCard(props: {
     const p = Number.isFinite(platformFee) ? platformFee : 0;
     return s + f + p;
   }, [stripeFee, fxFee, platformFee]);
+
+  // ✅ NEW: append fee % of gross to labels as STRING (MoneyRow expects string)
+  const feeLabelWithPct = useMemo(() => {
+    const grossSafe = Number.isFinite(gross) && gross > 0 ? gross : 0;
+    return (base: string, feeValue: number) => {
+      const v = Number.isFinite(feeValue) ? feeValue : 0;
+      if (!grossSafe || !v) return base;
+      const pct = safePct(v, grossSafe);
+      if (!Number.isFinite(pct) || pct <= 0) return base;
+      // keep it compact & premium
+      return `${base} (${pct.toFixed(2)}%)`;
+    };
+  }, [gross]);
+
+function formatProviderFeeLabel(params: {
+  baseLabel: string;
+  gross: number;
+  feeAmount: number;
+  feePctUsed?: number | null;
+  fixedUsed?: number | null;
+  currencySymbol: string;
+}) {
+  const { baseLabel, gross, feeAmount, feePctUsed, fixedUsed, currencySymbol } = params;
+
+  const grossSafe = Number.isFinite(gross) && gross > 0 ? gross : 0;
+  const feeSafe = Number.isFinite(feeAmount) ? feeAmount : 0;
+
+  // effective % (what your ResultsCard already shows today)
+  const effectivePct = grossSafe > 0 ? (feeSafe / grossSafe) * 100 : 0;
+
+  const pct = feePctUsed == null ? null : Number.isFinite(feePctUsed) ? feePctUsed : null;
+  const fixed = fixedUsed == null ? null : Number.isFinite(fixedUsed) ? fixedUsed : null;
+
+  const hasPct = pct != null && Math.abs(pct) > 1e-9;
+  const hasFixed = fixed != null && Math.abs(fixed) > 1e-9;
+
+  // If we don't know the rate-card breakdown, fall back to effective only.
+  if (!hasPct && !hasFixed) {
+    return `${baseLabel} (${effectivePct.toFixed(2)}% effective)`;
+  }
+
+  // Build: "x% + £y.yy → z.zz% effective"
+  const parts: string[] = [];
+  if (hasPct) parts.push(`${pct!.toFixed(2)}%`);
+  if (hasFixed) parts.push(`${currencySymbol}${fixed!.toFixed(2)}`);
+
+  // If gross is missing, we can't show effective properly
+  if (!grossSafe) {
+    return `${baseLabel} (${parts.join(" + ")})`;
+  }
+
+  return `${baseLabel} (${parts.join(" + ")} → ${effectivePct.toFixed(2)}% effective)`;
+}
+
 
   const marginSummary = useMemo(() => {
     const grossSafe = Number.isFinite(gross) ? gross : 0;
@@ -1183,7 +1239,12 @@ export function ResultsCard(props: {
             </>
           ) : null}
 
-          <MoneyRow label={`${providerFeeRowLabel} (monthly)`} symbol={symbol} value={volume.providerFeesMonthly} kind="fee" />
+          <MoneyRow
+            label={`${providerFeeRowLabel} (monthly)`}
+            symbol={symbol}
+            value={volume.providerFeesMonthly}
+            kind="fee"
+          />
           <MoneyRow label="FX (monthly)" symbol={symbol} value={volume.fxFeesMonthly} kind="fee" />
           <MoneyRow label="Platform (monthly)" symbol={symbol} value={volume.platformFeesMonthly} kind="fee" />
 
@@ -1256,36 +1317,32 @@ export function ResultsCard(props: {
       </div>
 
       {/* Header */}
-<div className="relative mb-8 flex flex-col items-center">
-  
-  {/* Layered Ambient Glows */}
-  <div className="pointer-events-none absolute -top-12 h-32 w-[28rem] rounded-full bg-amber-500/15 blur-[100px]" />
-  <div className="pointer-events-none absolute top-0 h-px w-full max-w-2xl bg-gradient-to-r from-transparent via-amber-400/20 to-transparent" />
+      <div className="relative mb-8 flex flex-col items-center">
+        {/* Layered Ambient Glows */}
+        <div className="pointer-events-none absolute -top-12 h-32 w-[28rem] rounded-full bg-amber-500/15 blur-[100px]" />
+        <div className="pointer-events-none absolute top-0 h-px w-full max-w-2xl bg-gradient-to-r from-transparent via-amber-400/20 to-transparent" />
 
-  <div className="relative flex flex-col items-center text-center">
-    
-    {/* Title */}
-    <div className="space-y-2">
-      <h2 className="text-2xl font-black tracking-tighter text-white sm:text-4xl">
-        Outcome<span className="text-amber-400/80">.</span>
-      </h2>
+        <div className="relative flex flex-col items-center text-center">
+          {/* Title */}
+          <div className="space-y-2">
+            <h2 className="text-2xl font-black tracking-tighter text-white sm:text-4xl">
+              Outcome<span className="text-amber-400/80">.</span>
+            </h2>
 
-      {/* Subtitle */}
-      <p className="max-w-md text-[10px] font-medium uppercase tracking-[0.3em] text-amber-400/60">
-        {subtitle}
-      </p>
-    </div>
+            {/* Subtitle */}
+            <p className="max-w-md text-[10px] font-medium uppercase tracking-[0.3em] text-amber-400/60">
+              {subtitle}
+            </p>
+          </div>
 
-    {/* Divider */}
-    <div className="relative mt-4 flex items-center justify-center">
-      <div className="h-[1px] w-12 bg-gradient-to-r from-transparent to-white/20" />
-      <div className="mx-3 h-1.5 w-1.5 rotate-45 border border-amber-400/40" />
-      <div className="h-[1px] w-12 bg-gradient-to-l from-transparent to-white/20" />
-    </div>
-
-  </div>
-</div>
-
+          {/* Divider */}
+          <div className="relative mt-4 flex items-center justify-center">
+            <div className="h-[1px] w-12 bg-gradient-to-r from-transparent to-white/20" />
+            <div className="mx-3 h-1.5 w-1.5 rotate-45 border border-amber-400/40" />
+            <div className="h-[1px] w-12 bg-gradient-to-l from-transparent to-white/20" />
+          </div>
+        </div>
+      </div>
 
       {/* ADVICE */}
       <div
@@ -1384,7 +1441,9 @@ export function ResultsCard(props: {
                       </div>
 
                       {showZeroDriftHint ? (
-                        <div className="mt-2 text-[11px] text-white/55">No change: the selected fee is currently set to 0%.</div>
+                        <div className="mt-2 text-[11px] text-white/55">
+                          No change: the selected fee is currently set to 0%.
+                        </div>
                       ) : null}
 
                       <div className="mt-3 space-y-2">
@@ -1479,9 +1538,43 @@ export function ResultsCard(props: {
               </div>
 
               <div className="space-y-3">
-                <MoneyRow label={providerFeeRowLabel} symbol={symbol} value={stripeFee} kind="fee" />
-                <MoneyRow label="FX" symbol={symbol} value={fxFee} kind="fee" />
-                <MoneyRow label="Platform" symbol={symbol} value={platformFee} kind="fee" />
+                {/* ✅ % of gross shown next to each fee label (string) */}
+<MoneyRow
+label={
+  <span className="flex min-w-0 flex-col">
+    {/* Line 1: main label + effective % */}
+    <span className="flex items-baseline gap-1 truncate">
+      <span>{providerFeeRowLabel}</span>
+<span className="text-inherit opacity-100">
+  ({gross > 0 ? ((stripeFee / gross) * 100).toFixed(2) : "0.00"}%)
+</span>
+
+    </span>
+
+    {/* Line 2: rate-card breakdown */}
+    {providerFeePercentUsed != null && providerFixedFeeUsed != null ? (
+      <span className="mt-0.5 text-[11px] font-medium text-white/45">
+        ({providerFeePercentUsed.toFixed(2)}% + {symbol}
+        {providerFixedFeeUsed.toFixed(2)})
+      </span>
+    ) : null}
+  </span>
+}
+
+
+  symbol={symbol}
+  value={stripeFee}
+  kind="fee"
+/>
+
+
+                <MoneyRow label={feeLabelWithPct("FX", fxFee)} symbol={symbol} value={fxFee} kind="fee" />
+                <MoneyRow
+                  label={feeLabelWithPct("Platform", platformFee)}
+                  symbol={symbol}
+                  value={platformFee}
+                  kind="fee"
+                />
               </div>
 
               <div
@@ -1490,7 +1583,14 @@ export function ResultsCard(props: {
                   "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.03)]",
                 ].join(" ")}
               >
-                <MoneyRow label="Total fees" symbol={symbol} value={totalDeductions} kind="fee" big />
+                {/* ✅ Total also shows % of gross (string) */}
+                <MoneyRow
+                  label={feeLabelWithPct("Total fees", totalDeductions)}
+                  symbol={symbol}
+                  value={totalDeductions}
+                  kind="fee"
+                  big
+                />
                 <div className="mt-0.5 text-[11px] tracking-wide text-rose-200/70">Fees subtracted from gross amount.</div>
               </div>
             </div>
@@ -1511,7 +1611,9 @@ export function ResultsCard(props: {
 
                 <MoneyRow label="You receive" symbol={symbol} value={net} big kind="net" />
 
-                <div className="mt-2 text-center text-[11px] text-white/55">Amount you receive after fee deductions (before taxes).</div>
+                <div className="mt-2 text-center text-[11px] text-white/55">
+                  Amount you receive after fee deductions (before taxes).
+                </div>
 
                 {/* VAT */}
                 {vatOn ? (
@@ -1545,7 +1647,9 @@ export function ResultsCard(props: {
                       <MoneyRow label="Net after VAT" symbol={symbol} value={vatBlock.nAfter} kind="net" big />
                     </div>
 
-                    <div className="mt-2 text-center text-[11px] text-white/55">Post-tax view (VAT is not treated as a “fee” above).</div>
+                    <div className="mt-2 text-center text-[11px] text-white/55">
+                      Post-tax view (VAT is not treated as a “fee” above).
+                    </div>
                   </div>
                 ) : (
                   <div className="mt-4 text-center text-[11px] text-white/45">VAT: Off</div>
@@ -1644,7 +1748,13 @@ export function ResultsCard(props: {
                     </div>
 
                     <div className="mt-3">
-                      <MoneyRow label="Required customer price" symbol={symbol} value={breakEven.requiredCharge} big kind="charge" />
+                      <MoneyRow
+                        label="Required customer price"
+                        symbol={symbol}
+                        value={breakEven.requiredCharge}
+                        big
+                        kind="charge"
+                      />
                     </div>
 
                     {!breakEven.denomOk ? (
@@ -1669,7 +1779,9 @@ export function ResultsCard(props: {
                     </div>
 
                     {showZeroDriftHint ? (
-                      <div className="mt-2 text-[11px] text-white/55">No change: the selected fee is currently set to 0%.</div>
+                      <div className="mt-2 text-[11px] text-white/55">
+                        No change: the selected fee is currently set to 0%.
+                      </div>
                     ) : null}
 
                     <div className="mt-3 space-y-2">
@@ -1811,23 +1923,21 @@ export function ResultsCard(props: {
                     engine nor it provides contractual quotes.
                   </div>
 
-<div>
-  <span className="font-semibold text-white/85">Included:</span>{" "}
-  provider fees and overrides, region and currency settings, FX fees,
-  rounding, platform fees, VAT shown separately and advanced tool calculations (show separately)
-</div>
+                  <div>
+                    <span className="font-semibold text-white/85">Included:</span>{" "}
+                    provider fees and overrides, region and currency settings, FX fees, rounding, platform fees, VAT shown
+                    separately and advanced tool calculations (show separately)
+                  </div>
 
-<div>
-  <span className="font-semibold text-white/85">Excluded:</span>{" "}
-  disputes and chargebacks, payout timing effects, hidden FX spreads,
-  operational and compliance costs and external banking or settlement fees.
-  <div className="mt-1 text-xs text-white/55">
-    Why excluded: these are event-driven, timing-based, provider/bank-specific,
-    or non-linear costs that can’t be reliably estimated per transaction.
-  </div>
-</div>
-
-
+                  <div>
+                    <span className="font-semibold text-white/85">Excluded:</span>{" "}
+                    disputes and chargebacks, payout timing effects, hidden FX spreads, operational and compliance costs
+                    and external banking or settlement fees.
+                    <div className="mt-1 text-xs text-white/55">
+                      Why excluded: these are event-driven, timing-based, provider/bank-specific, or non-linear costs that
+                      can’t be reliably estimated per transaction.
+                    </div>
+                  </div>
 
                   <div>
                     <span className="font-semibold text-white/85">VAT:</span> displayed separately. Net values represent
@@ -1845,11 +1955,11 @@ export function ResultsCard(props: {
                     {platformFeeBaseCopy(modelKind, platformFeeBase)}
                   </div>
 
-<div>
-  <span className="font-semibold text-white/85">Advanced tools</span> are optional analytical tools built on top of the calculated net values.
-  They help you explore break-even points, fee impact, and volume scenarios, but they do not change the underlying pricing or fees.
-</div>
-                  
+                  <div>
+                    <span className="font-semibold text-white/85">Advanced tools</span> are optional analytical tools built
+                    on top of the calculated net values. They help you explore break-even points, fee impact, and volume
+                    scenarios, but they do not change the underlying pricing or fees.
+                  </div>
                 </div>
               </>
             ) : null}

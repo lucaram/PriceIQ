@@ -234,6 +234,10 @@ function computeForState_STRIPE(s0: CalcState) {
     totalPct,
     fxDominates,
     nearLimit,
+
+    // ✅ NEW: allow ResultsCard to display “Applied rate: X% + Y”
+    providerFeePercentUsed: pctUsed,
+    providerFixedFeeUsed: fixedUsed,
   };
 }
 
@@ -242,6 +246,7 @@ function computeForState_STRIPE(s0: CalcState) {
  * - Keeps ResultsCard shape by mapping provider_fee -> stripeFee
  * - Reverse mode: quote(reverse) => get gross suggestion => round/psych => quote(forward) for final breakdown
  * - ✅ Custom provider label is passed through (customProviderLabel)
+ * - ✅ NEW: pass through provider "rate used" so ResultsCard can show % + fixed
  */
 function computeForState(s0: CalcState) {
   const s = normalizeState(s0);
@@ -339,6 +344,16 @@ function computeForState(s0: CalcState) {
     (s.mode === "forward" ? true : Boolean(baseQuote.denomOk)) &&
     (s.mode === "forward" ? Number.isFinite(customerCharge) : Number.isFinite(rawGross));
 
+  // ✅ NEW: provider "rate used" from quote meta (if provided by provider)
+  const metaAny = (finalQuote as any)?.meta ?? {};
+  const providerFeePercentUsed =
+    typeof metaAny?.providerPercent === "number" && Number.isFinite(metaAny.providerPercent)
+      ? metaAny.providerPercent
+      : null;
+
+  const providerFixedFeeUsed =
+    typeof metaAny?.providerFixed === "number" && Number.isFinite(metaAny.providerFixed) ? metaAny.providerFixed : null;
+
   return {
     symbol: finalQuote.symbol,
     pricingTierLabel: productLabel || providerLabel,
@@ -369,6 +384,10 @@ function computeForState(s0: CalcState) {
 
     // helpful for ResultsCard headers (optional)
     customProviderLabel,
+
+    // ✅ NEW: allow ResultsCard to display “Applied rate: X% + Y”
+    providerFeePercentUsed,
+    providerFixedFeeUsed,
   };
 }
 
@@ -707,36 +726,34 @@ export function Calculator() {
   // -----------------------------
   // ✅ PostHog helpers (dedupe noisy dev / strict-mode effects)
   // -----------------------------
-const phSeenRef = useRef<Record<string, number>>({});
+  const phSeenRef = useRef<Record<string, number>>({});
 
-function phCapture(name: string, props?: Record<string, any>, cooldownMs = 400) {
-  try {
-    if (typeof window === "undefined") return;
-    if (!posthog || typeof (posthog as any).capture !== "function") return;
+  function phCapture(name: string, props?: Record<string, any>, cooldownMs = 400) {
+    try {
+      if (typeof window === "undefined") return;
+      if (!posthog || typeof (posthog as any).capture !== "function") return;
 
-    const key = `${name}:${JSON.stringify(props ?? {})}`;
-    const now = Date.now();
-    const last = phSeenRef.current[key] ?? 0;
+      const key = `${name}:${JSON.stringify(props ?? {})}`;
+      const now = Date.now();
+      const last = phSeenRef.current[key] ?? 0;
 
-    if (now - last < cooldownMs) return;
+      if (now - last < cooldownMs) return;
 
-    phSeenRef.current[key] = now;
+      phSeenRef.current[key] = now;
 
-    // ✅ cap the map so it can't grow forever
-    const keys = Object.keys(phSeenRef.current);
-    if (keys.length > 300) {
-      for (const k of keys.slice(0, 120)) {
-        delete phSeenRef.current[k];
+      // ✅ cap the map so it can't grow forever
+      const keys = Object.keys(phSeenRef.current);
+      if (keys.length > 300) {
+        for (const k of keys.slice(0, 120)) {
+          delete phSeenRef.current[k];
+        }
       }
+
+      (posthog as any).capture(name, props ?? {});
+    } catch {
+      // silent fail – analytics should never break UX
     }
-
-    (posthog as any).capture(name, props ?? {});
-  } catch {
-    // silent fail – analytics should never break UX
   }
-}
-
-
 
   const [activeId, setActiveId] = useState<string>("s1");
   const [scenarios, setScenarios] = useState<Scenario[]>([
@@ -939,12 +956,7 @@ function phCapture(name: string, props?: Record<string, any>, cooldownMs = 400) 
     );
   }
 
-  function applyModelChangeNormalization(params: {
-    scenarioId: string;
-    prev: CalcState;
-    next: CalcState;
-    presetId?: PresetId | undefined;
-  }) {
+  function applyModelChangeNormalization(params: { scenarioId: string; prev: CalcState; next: CalcState; presetId?: PresetId | undefined }) {
     const { scenarioId, prev, next, presetId } = params;
 
     const prevN = normalizeState(prev);
@@ -985,8 +997,7 @@ function phCapture(name: string, props?: Record<string, any>, cooldownMs = 400) 
       if (!touch.breakEvenOn) patch.breakEvenOn = false;
       if (!touch.sensitivityOn) patch.sensitivityOn = false;
 
-      if (!touch.sensitivityDeltaPct && isDefaultish(prevN, "sensitivityDeltaPct"))
-        patch.sensitivityDeltaPct = 1 as any;
+      if (!touch.sensitivityDeltaPct && isDefaultish(prevN, "sensitivityDeltaPct")) patch.sensitivityDeltaPct = 1 as any;
       if (!touch.sensitivityTarget && isDefaultish(prevN, "sensitivityTarget")) patch.sensitivityTarget = "all" as any;
     }
 
@@ -996,8 +1007,7 @@ function phCapture(name: string, props?: Record<string, any>, cooldownMs = 400) 
       }
 
       if (!touch.platformFeeBase && isDefaultish(prevN, "platformFeeBase")) {
-        if (starter.platformFeeBase === "gross" || starter.platformFeeBase === "afterStripe")
-          patch.platformFeeBase = starter.platformFeeBase;
+        if (starter.platformFeeBase === "gross" || starter.platformFeeBase === "afterStripe") patch.platformFeeBase = starter.platformFeeBase;
       }
 
       if (!touch.fxPercent && isDefaultish(prevN, "fxPercent")) {
@@ -1022,8 +1032,7 @@ function phCapture(name: string, props?: Record<string, any>, cooldownMs = 400) 
         }
 
         if (!touch.sensitivityDeltaPct && isDefaultish(prevN, "sensitivityDeltaPct")) {
-          if (typeof starter.sensitivityDeltaPct === "number")
-            patch.sensitivityDeltaPct = clampPct(starter.sensitivityDeltaPct) as any;
+          if (typeof starter.sensitivityDeltaPct === "number") patch.sensitivityDeltaPct = clampPct(starter.sensitivityDeltaPct) as any;
         }
 
         if (!touch.sensitivityTarget && isDefaultish(prevN, "sensitivityTarget")) {
@@ -1307,11 +1316,7 @@ function phCapture(name: string, props?: Record<string, any>, cooldownMs = 400) 
       volLines.push(`Volume projections: Off`);
     } else if (!vol) {
       const why =
-        txPerMonth <= 0
-          ? "Tx/month must be greater than 0"
-          : tiers.length === 0
-          ? "Add at least one basket tier"
-          : "Check basket tier shares/prices";
+        txPerMonth <= 0 ? "Tx/month must be greater than 0" : tiers.length === 0 ? "Add at least one basket tier" : "Check basket tier shares/prices";
 
       volLines.push(`Volume projections: On (incomplete — ${why})`);
     } else {
@@ -1578,9 +1583,7 @@ function phCapture(name: string, props?: Record<string, any>, cooldownMs = 400) 
               }}
               className={[
                 "rounded-full border px-3 py-1.5 text-xs transition",
-                s.id === activeId
-                  ? "border-white/15 bg-white/10 text-white"
-                  : "border-white/10 bg-white/5 text-white/70 hover:bg-white/8",
+                s.id === activeId ? "border-white/15 bg-white/10 text-white" : "border-white/10 bg-white/5 text-white/70 hover:bg-white/8",
               ].join(" ")}
             >
               {s.name}
@@ -1723,9 +1726,7 @@ function phCapture(name: string, props?: Record<string, any>, cooldownMs = 400) 
             updateActive({ customProviderFeePercent: n == null ? null : clampPct(n) } as any, { source: "user" })
           }
           customFixedFee={(activeStateN as any).customFixedFee ?? null}
-          setCustomFixedFee={(n: number | null) =>
-            updateActive({ customFixedFee: n == null ? null : clampMoneyLike(n) } as any, { source: "user" })
-          }
+          setCustomFixedFee={(n: number | null) => updateActive({ customFixedFee: n == null ? null : clampMoneyLike(n) } as any, { source: "user" })}
           // ✅ Volume Projections (tier-driven)
           volumeOn={Boolean((activeStateN as any).volumeOn)}
           setVolumeOn={(v) => {
@@ -1773,6 +1774,9 @@ function phCapture(name: string, props?: Record<string, any>, cooldownMs = 400) 
           customFixedFee={(activeStateN as any).customFixedFee ?? null}
           // ✅ NEW: show custom label in ResultsCard header if you want
           customProviderLabel={((activeStateN as any).customProviderLabel ?? "") as string}
+          // ✅ NEW: provider “rate used” (for displaying “X% + Y” beside the provider fee row)
+          providerFeePercentUsed={(activeComputed as any).providerFeePercentUsed ?? null}
+          providerFixedFeeUsed={(activeComputed as any).providerFixedFeeUsed ?? null}
           // ✅ CRITICAL: pass volume inputs to ResultsCard (it computes projections locally)
           volumeOn={Boolean((activeStateN as any).volumeOn)}
           volumeTxPerMonth={Number((activeStateN as any).volumeTxPerMonth ?? 0)}

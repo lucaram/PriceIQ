@@ -1,10 +1,11 @@
 export function MoneyRow(props: {
-  label: string;
+  label: React.ReactNode; // ✅ allow JSX, not just string
   symbol: string;
   value: number;
   big?: boolean;
   kind?: "normal" | "fee" | "charge" | "net";
 }) {
+
   const { label, symbol, value, big, kind = "normal" } = props;
 
   const isFee = kind === "fee";
@@ -12,7 +13,8 @@ export function MoneyRow(props: {
   const isNet = kind === "net";
 
   return (
-    <div className="flex items-center justify-between gap-4">
+    <div className="flex items-start justify-between gap-4">
+
       <div
         className={[
           "min-w-0 truncate",
@@ -22,10 +24,14 @@ export function MoneyRow(props: {
           isNet && "text-emerald-200/90",
           !isFee && !isCharge && !isNet && "text-white/75",
         ].join(" ")}
-        title={label}
+        title={typeof label === "string" ? label : undefined}
+
       >
-        {isFee ? "– " : ""}
-        {label}
+<span className="inline-flex items-baseline gap-1">
+  {isFee ? <span>–</span> : null}
+  {label}
+</span>
+
       </div>
 
       <div
