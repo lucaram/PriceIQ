@@ -21,7 +21,7 @@ import {
 import type { PresetId } from "@/lib/presets";
 import { InputsCard, type SensitivityTarget } from "./InputsCard";
 import { ResultsCard } from "./ResultsCard";
-import { ActionsBar } from "./ActionsBar";
+import { ActionsBar, type WorkbookSheet } from "./ActionsBar";
 import { ScenarioCompare } from "./ScenarioCompare";
 
 // ✅ Provider plumbing
@@ -36,6 +36,8 @@ type Scenario = {
   name: string;
   state: CalcState;
 };
+
+type CsvKV = Array<{ label: string; value: string }>;
 
 function uid() {
   return Math.random().toString(16).slice(2) + Date.now().toString(16);
@@ -112,9 +114,6 @@ function applyRoundingAndPsych(params: { gross: number; roundingStep: RoundingSt
 /**
  * ✅ Stripe fee computation (with optional overrides from CalcState)
  */
-/**
- * ✅ Stripe fee computation (with optional overrides from CalcState)
- */
 function computeFeesFromGross_STRIPE(s: CalcState, gross: number) {
   const options = PRICING[s.region];
   const selected = options.find((o) => o.id === s.pricingId) ?? options[0];
@@ -168,7 +167,6 @@ function computeFeesFromGross_STRIPE(s: CalcState, gross: number) {
     fixedUsed,
   };
 }
-
 
 function computeForState_STRIPE(s0: CalcState) {
   const s = normalizeState(s0);
@@ -531,31 +529,30 @@ function computeSensitivity(s0: CalcState) {
   const baseStripePct = customPct != null ? clampPct(customPct) : Number(selected.percent) || 0;
 
   function computeNetWithPercents(params: { stripePercent: number; fxPercent: number; platformPercent: number }) {
-  const gross = customerCharge0;
+    const gross = customerCharge0;
 
-  const hasCharge = Number.isFinite(gross) && gross > 0;
+    const hasCharge = Number.isFinite(gross) && gross > 0;
 
-  const stripeP = params.stripePercent / 100;
-  const fxP = params.fxPercent / 100;
-  const platP = params.platformPercent / 100;
+    const stripeP = params.stripePercent / 100;
+    const fxP = params.fxPercent / 100;
+    const platP = params.platformPercent / 100;
 
-  const customFixed = (s as any).customFixedFee as number | null;
-  const fixedUsed = customFixed != null ? clampMoneyLike(customFixed) : selected.fixed;
+    const customFixed = (s as any).customFixedFee as number | null;
+    const fixedUsed = customFixed != null ? clampMoneyLike(customFixed) : selected.fixed;
 
-  // ✅ EDGE CASE FIX: no fixed fee if gross is 0
-  const stripeFee = hasCharge ? gross * stripeP + fixedUsed : 0;
-  const fxFee = hasCharge ? gross * fxP : 0;
+    // ✅ EDGE CASE FIX: no fixed fee if gross is 0
+    const stripeFee = hasCharge ? gross * stripeP + fixedUsed : 0;
+    const fxFee = hasCharge ? gross * fxP : 0;
 
-  const platformFee = hasCharge
-    ? s.platformFeeBase === "afterStripe"
-      ? Math.max(0, gross - stripeFee) * platP
-      : gross * platP
-    : 0;
+    const platformFee = hasCharge
+      ? s.platformFeeBase === "afterStripe"
+        ? Math.max(0, gross - stripeFee) * platP
+        : gross * platP
+      : 0;
 
-  const netBeforeVat = (Number.isFinite(gross) ? gross : 0) - stripeFee - fxFee - platformFee;
-  return roundMoney(netBeforeVat);
-}
-
+    const netBeforeVat = (Number.isFinite(gross) ? gross : 0) - stripeFee - fxFee - platformFee;
+    return roundMoney(netBeforeVat);
+  }
 
   const baseFxPct = clampPct(Number(s.fxPercent ?? 0));
   const basePlatPct = clampPct(Number(s.platformFeePercent ?? 0));
@@ -658,12 +655,11 @@ function computeVolumeProjections(
     const tierTx = txPerMonth * (sharePct / 100);
     const tierGross = tierTx * price;
 
- // ✅ EDGE CASE FIX: if price is 0, don't apply fixed fee
-const hasPrice = Number.isFinite(price) && price > 0;
+    // ✅ EDGE CASE FIX: if price is 0, don't apply fixed fee
+    const hasPrice = Number.isFinite(price) && price > 0;
 
-const providerFeePerTx = hasPrice ? price * (providerPct / 100) + providerFixed : 0;
-const fxFeePerTx = hasPrice ? price * (fxPct / 100) : 0;
-
+    const providerFeePerTx = hasPrice ? price * (providerPct / 100) + providerFixed : 0;
+    const fxFeePerTx = hasPrice ? price * (fxPct / 100) : 0;
 
     const platformBasePerTx = platformFeeBase === "gross" ? price : Math.max(0, price - providerFeePerTx);
     const platformFeePerTx = platformBasePerTx * (platformFeePercent / 100);
@@ -739,6 +735,174 @@ function isDefaultish(prev: CalcState, key: keyof TouchMap) {
   if (key === "volumeOn") return Boolean((p as any).volumeOn) === Boolean((d as any).volumeOn);
 
   return (p as any)[key] === (d as any)[key];
+}
+
+function buildCsvRowsForScenario(params: {
+  computed: any;
+  state: CalcState;
+  scenarioName: string;
+}): CsvKV {
+  const { computed: c, state: state0, scenarioName } = params;
+  const s = normalizeState(state0);
+
+  const providerId = (s.providerId ?? DEFAULT_PROVIDER_ID) as ProviderId;
+
+  // Stripe-only tier name; all others should be "Off"
+  const tierValue = providerId === "stripe" ? String(c.pricingTierLabel ?? "") : "Off";
+
+  // Provider/product display (match your breakdownText logic)
+  const provider = getProvider(providerId);
+  const productId = String(s.productId ?? "");
+  const productLabel = provider.products?.find((p) => p.id === productId)?.label ?? "";
+
+  const customProviderLabel = (s as any).customProviderLabel as string | undefined;
+  const providerDisplay =
+    providerId === "custom" ? (customProviderLabel?.trim() ? customProviderLabel.trim() : "Custom") : provider.label;
+
+  const customPct = (s as any).customProviderFeePercent as number | null;
+  const customFixed = (s as any).customFixedFee as number | null;
+
+  const feeOverridesOn = customPct != null || customFixed != null;
+
+  // --- Base always-present rows (use 0 / Off when not used) ---
+  const rows: CsvKV = [
+    // Context
+    { label: "app", value: "PriceIQ" },
+    { label: "scenario", value: String(scenarioName ?? "") },
+    { label: "provider_id", value: String(providerId) },
+    { label: "provider", value: String(providerDisplay) },
+    { label: "product", value: String(productLabel) },
+    { label: "custom_provider_label", value: providerId === "custom" ? (customProviderLabel ?? "").trim() : "" },
+    { label: "region", value: String(s.region ?? "") },
+    { label: "mode", value: s.mode === "reverse" ? "reverse" : "forward" },
+    { label: "tier", value: tierValue },
+    { label: "currency_symbol", value: String(c.symbol ?? "") },
+
+    // Controls / Inputs
+    { label: "fx_percent", value: `${Number(s.fxPercent ?? 0).toFixed(2)}` },
+    { label: "platform_fee_percent", value: `${Number(s.platformFeePercent ?? 0).toFixed(2)}` },
+    { label: "platform_fee_base", value: String(s.platformFeeBase ?? "gross") },
+    { label: "vat_percent", value: `${Number(s.vatPercent ?? 0).toFixed(2)}` },
+    { label: "rounding_step", value: String(s.roundingStep ?? "") },
+    { label: "psych_pricing_on", value: Boolean(s.psychPriceOn) ? "On" : "Off" },
+
+    // Fee overrides (explicit On/Off + values)
+    { label: "fee_overrides_on", value: feeOverridesOn ? "On" : "Off" },
+    { label: "override_percent", value: customPct == null ? "0" : `${customPct.toFixed(2)}` },
+    { label: "override_fixed", value: customFixed == null ? "0" : `${Number(customFixed).toFixed(2)}` },
+
+    // Results (per transaction) — keep numeric values consistent for wide CSV
+    { label: "charge", value: `${c.symbol}${c.gross.toFixed(2)}` },
+
+    // Emit BOTH keys so ActionsBar can always fill provider_fee cleanly
+    { label: "stripe_fee", value: providerId === "stripe" ? `${c.symbol}${c.stripeFee.toFixed(2)}` : `${c.symbol}0.00` },
+    { label: "provider_fee", value: providerId === "stripe" ? `${c.symbol}0.00` : `${c.symbol}${c.stripeFee.toFixed(2)}` },
+
+    { label: "fx_fee", value: `${c.symbol}${c.fxFee.toFixed(2)}` },
+    { label: "platform_fee", value: `${c.symbol}${c.platformFee.toFixed(2)}` },
+    { label: "net_before_vat", value: `${c.symbol}${c.net.toFixed(2)}` },
+    { label: "vat_amount", value: `${c.symbol}${c.vatAmount.toFixed(2)}` },
+    { label: "net_after_vat", value: `${c.symbol}${c.netAfterVat.toFixed(2)}` },
+  ];
+
+  // --- Break-even (always include fields; fill 0/Off when unused) ---
+  if (Boolean(s.breakEvenOn)) {
+    rows.push({ label: "break_even_on", value: "1" });
+
+    if (c.breakEven && c.breakEven.denomOk) {
+      rows.push(
+        { label: "break_even_target_net", value: `${c.symbol}${Number(c.breakEven.targetNet).toFixed(2)}` },
+        { label: "break_even_required_charge", value: `${c.symbol}${Number(c.breakEven.requiredCharge).toFixed(2)}` },
+        { label: "break_even_solvable", value: "1" }
+      );
+    } else {
+      rows.push(
+        { label: "break_even_target_net", value: `${c.symbol}0.00` },
+        { label: "break_even_required_charge", value: `${c.symbol}0.00` },
+        { label: "break_even_solvable", value: "0" }
+      );
+    }
+  } else {
+    rows.push(
+      { label: "break_even_on", value: "0" },
+      { label: "break_even_target_net", value: `${c.symbol}0.00` },
+      { label: "break_even_required_charge", value: `${c.symbol}0.00` },
+      { label: "break_even_solvable", value: "0" }
+    );
+  }
+
+  // --- Fee impact (always include fields; fill defaults when unused) ---
+  if (Boolean(s.sensitivityOn) && c.sensitivity) {
+    const sens = c.sensitivity;
+
+    const affectedFee =
+      sens.target === "all"
+        ? "all"
+        : sens.target === "stripe"
+        ? providerId === "stripe"
+          ? "stripe"
+          : "provider"
+        : sens.target === "fx"
+        ? "fx"
+        : "platform";
+
+    rows.push(
+      { label: "fee_impact_on", value: "1" },
+      { label: "fee_impact_affected_fee", value: affectedFee },
+      { label: "fee_impact_delta_pct", value: `${Number(sens.deltaPct).toFixed(2)}` },
+      { label: "fee_impact_base_net", value: `${c.symbol}${Number(sens.baseNet).toFixed(2)}` },
+      { label: "fee_impact_net_up", value: `${c.symbol}${Number(sens.netUp).toFixed(2)}` },
+      { label: "fee_impact_net_down", value: `${c.symbol}${Number(sens.netDown).toFixed(2)}` }
+    );
+  } else {
+    rows.push(
+      { label: "fee_impact_on", value: "0" },
+      { label: "fee_impact_affected_fee", value: "off" },
+      { label: "fee_impact_delta_pct", value: "0" },
+      { label: "fee_impact_base_net", value: `${c.symbol}0.00` },
+      { label: "fee_impact_net_up", value: `${c.symbol}0.00` },
+      { label: "fee_impact_net_down", value: `${c.symbol}0.00` }
+    );
+  }
+
+  // --- Volume projections (always include inputs; include outputs if computed; else 0s) ---
+  const volumeOn = Boolean((s as any).volumeOn);
+  const volumeTxPerMonth = Number((s as any).volumeTxPerMonth ?? 0);
+  const volumeRefundRatePct = Number((s as any).volumeRefundRatePct ?? 0);
+  const volumeTiers = (((s as any).volumeTiers ?? []) as VolumeTier[]).filter(Boolean);
+
+  rows.push(
+    { label: "volume_on", value: volumeOn ? "1" : "0" },
+    { label: "volume_tx_per_month", value: String(Number.isFinite(volumeTxPerMonth) ? Math.round(volumeTxPerMonth) : 0) },
+    { label: "volume_refund_rate_pct", value: `${Number.isFinite(volumeRefundRatePct) ? volumeRefundRatePct.toFixed(2) : "0.00"}` },
+    { label: "volume_tiers_json", value: JSON.stringify(volumeTiers ?? []) }
+  );
+
+  // Keep monthly outputs stable even when off/incomplete
+  const vol = (c as any).volume as ReturnType<typeof computeVolumeProjections> | null;
+  if (vol) {
+    rows.push(
+      { label: "volume_monthly_gross", value: `${vol.symbol}${vol.monthlyGross.toFixed(2)}` },
+      { label: "volume_monthly_provider_fee", value: `${vol.symbol}${vol.monthlyProviderFee.toFixed(2)}` },
+      { label: "volume_monthly_fx_fee", value: `${vol.symbol}${vol.monthlyFxFee.toFixed(2)}` },
+      { label: "volume_monthly_platform_fee", value: `${vol.symbol}${vol.monthlyPlatformFee.toFixed(2)}` },
+      { label: "volume_monthly_net_before_refunds", value: `${vol.symbol}${vol.monthlyNetBeforeRefunds.toFixed(2)}` },
+      { label: "volume_monthly_refund_loss", value: `${vol.symbol}${vol.monthlyRefundLoss.toFixed(2)}` },
+      { label: "volume_monthly_net_after_refunds", value: `${vol.symbol}${vol.monthlyNetAfterRefunds.toFixed(2)}` }
+    );
+  } else {
+    rows.push(
+      { label: "volume_monthly_gross", value: `${c.symbol}0.00` },
+      { label: "volume_monthly_provider_fee", value: `${c.symbol}0.00` },
+      { label: "volume_monthly_fx_fee", value: `${c.symbol}0.00` },
+      { label: "volume_monthly_platform_fee", value: `${c.symbol}0.00` },
+      { label: "volume_monthly_net_before_refunds", value: `${c.symbol}0.00` },
+      { label: "volume_monthly_refund_loss", value: `${c.symbol}0.00` },
+      { label: "volume_monthly_net_after_refunds", value: `${c.symbol}0.00` }
+    );
+  }
+
+  return rows;
 }
 
 export function Calculator() {
@@ -981,7 +1145,12 @@ export function Calculator() {
     );
   }
 
-  function applyModelChangeNormalization(params: { scenarioId: string; prev: CalcState; next: CalcState; presetId?: PresetId | undefined }) {
+  function applyModelChangeNormalization(params: {
+    scenarioId: string;
+    prev: CalcState;
+    next: CalcState;
+    presetId?: PresetId | undefined;
+  }) {
     const { scenarioId, prev, next, presetId } = params;
 
     const prevN = normalizeState(prev);
@@ -1032,7 +1201,8 @@ export function Calculator() {
       }
 
       if (!touch.platformFeeBase && isDefaultish(prevN, "platformFeeBase")) {
-        if (starter.platformFeeBase === "gross" || starter.platformFeeBase === "afterStripe") patch.platformFeeBase = starter.platformFeeBase;
+        if (starter.platformFeeBase === "gross" || starter.platformFeeBase === "afterStripe")
+          patch.platformFeeBase = starter.platformFeeBase;
       }
 
       if (!touch.fxPercent && isDefaultish(prevN, "fxPercent")) {
@@ -1057,7 +1227,8 @@ export function Calculator() {
         }
 
         if (!touch.sensitivityDeltaPct && isDefaultish(prevN, "sensitivityDeltaPct")) {
-          if (typeof starter.sensitivityDeltaPct === "number") patch.sensitivityDeltaPct = clampPct(starter.sensitivityDeltaPct) as any;
+          if (typeof starter.sensitivityDeltaPct === "number")
+            patch.sensitivityDeltaPct = clampPct(starter.sensitivityDeltaPct) as any;
         }
 
         if (!touch.sensitivityTarget && isDefaultish(prevN, "sensitivityTarget")) {
@@ -1341,7 +1512,11 @@ export function Calculator() {
       volLines.push(`Volume projections: Off`);
     } else if (!vol) {
       const why =
-        txPerMonth <= 0 ? "Tx/month must be greater than 0" : tiers.length === 0 ? "Add at least one basket tier" : "Check basket tier shares/prices";
+        txPerMonth <= 0
+          ? "Tx/month must be greater than 0"
+          : tiers.length === 0
+          ? "Add at least one basket tier"
+          : "Check basket tier shares/prices";
 
       volLines.push(`Volume projections: On (incomplete — ${why})`);
     } else {
@@ -1366,6 +1541,9 @@ export function Calculator() {
       `PriceIQ`,
       `See the real cost of getting paid.`,
       `-----------------------------------`,
+      `SHARE URL`,
+      `${shareUrl}`,
+      `-----------------------------------`,
       `INPUTS`,
       `Scenario: ${active.name}`,
       `Provider: ${providerDisplay}${productLabel ? ` / ${productLabel}` : ""}`,
@@ -1388,171 +1566,38 @@ export function Calculator() {
       `Net (after VAT): ${c.symbol}${c.netAfterVat.toFixed(2)}`,
       ...advancedToolsBlock,
     ].join("\n");
-  }, [activeComputed, active]);
+  }, [activeComputed, active, shareUrl]);
 
   const csvRows = useMemo(() => {
-    const c = activeComputed;
-    const s = normalizeState(active.state);
-
-    const providerId = (s.providerId ?? DEFAULT_PROVIDER_ID) as ProviderId;
-
-    // Stripe-only tier name; all others should be "Off"
-    const tierValue = providerId === "stripe" ? String(c.pricingTierLabel ?? "") : "Off";
-
-    // Provider/product display (match your breakdownText logic)
-    const provider = getProvider(providerId);
-    const productId = String(s.productId ?? "");
-    const productLabel = provider.products?.find((p) => p.id === productId)?.label ?? "";
-
-    const customProviderLabel = (s as any).customProviderLabel as string | undefined;
-    const providerDisplay =
-      providerId === "custom" ? (customProviderLabel?.trim() ? customProviderLabel.trim() : "Custom") : provider.label;
-
-    const customPct = (s as any).customProviderFeePercent as number | null;
-    const customFixed = (s as any).customFixedFee as number | null;
-
-    const feeOverridesOn = customPct != null || customFixed != null;
-
-    // --- Base always-present rows (use 0 / Off when not used) ---
-    const rows: Array<{ label: string; value: string }> = [
-      // Context
-      { label: "app", value: "PriceIQ" },
-      { label: "scenario", value: String(active.name ?? "") },
-      { label: "provider_id", value: String(providerId) },
-      { label: "provider", value: String(providerDisplay) },
-      { label: "product", value: String(productLabel) },
-      { label: "custom_provider_label", value: providerId === "custom" ? (customProviderLabel ?? "").trim() : "" },
-      { label: "region", value: String(s.region ?? "") },
-      { label: "mode", value: s.mode === "reverse" ? "reverse" : "forward" },
-      { label: "tier", value: tierValue },
-      { label: "currency_symbol", value: String(c.symbol ?? "") },
-
-      // Controls / Inputs
-      { label: "fx_percent", value: `${Number(s.fxPercent ?? 0).toFixed(2)}` },
-      { label: "platform_fee_percent", value: `${Number(s.platformFeePercent ?? 0).toFixed(2)}` },
-      { label: "platform_fee_base", value: String(s.platformFeeBase ?? "gross") },
-      { label: "vat_percent", value: `${Number(s.vatPercent ?? 0).toFixed(2)}` },
-      { label: "rounding_step", value: String(s.roundingStep ?? "") },
-      { label: "psych_pricing_on", value: Boolean(s.psychPriceOn) ? "On" : "Off" },
-
-      // Fee overrides (explicit On/Off + values)
-      { label: "fee_overrides_on", value: feeOverridesOn ? "On" : "Off" },
-      { label: "override_percent", value: customPct == null ? "0" : `${customPct.toFixed(2)}` },
-      { label: "override_fixed", value: customFixed == null ? "0" : `${Number(customFixed).toFixed(2)}` },
-
-      // Results (per transaction) — keep numeric values consistent for wide CSV
-      { label: "charge", value: `${c.symbol}${c.gross.toFixed(2)}` },
-
-      // Emit BOTH keys so ActionsBar can always fill provider_fee cleanly
-      { label: "stripe_fee", value: providerId === "stripe" ? `${c.symbol}${c.stripeFee.toFixed(2)}` : `${c.symbol}0.00` },
-      { label: "provider_fee", value: providerId === "stripe" ? `${c.symbol}0.00` : `${c.symbol}${c.stripeFee.toFixed(2)}` },
-
-      { label: "fx_fee", value: `${c.symbol}${c.fxFee.toFixed(2)}` },
-      { label: "platform_fee", value: `${c.symbol}${c.platformFee.toFixed(2)}` },
-      { label: "net_before_vat", value: `${c.symbol}${c.net.toFixed(2)}` },
-      { label: "vat_amount", value: `${c.symbol}${c.vatAmount.toFixed(2)}` },
-      { label: "net_after_vat", value: `${c.symbol}${c.netAfterVat.toFixed(2)}` },
-    ];
-
-    // --- Break-even (always include fields; fill 0/Off when unused) ---
-    if (Boolean(s.breakEvenOn)) {
-      rows.push({ label: "break_even_on", value: "1" });
-
-      if (c.breakEven && c.breakEven.denomOk) {
-        rows.push(
-          { label: "break_even_target_net", value: `${c.symbol}${Number(c.breakEven.targetNet).toFixed(2)}` },
-          { label: "break_even_required_charge", value: `${c.symbol}${Number(c.breakEven.requiredCharge).toFixed(2)}` },
-          { label: "break_even_solvable", value: "1" }
-        );
-      } else {
-        rows.push(
-          { label: "break_even_target_net", value: `${c.symbol}0.00` },
-          { label: "break_even_required_charge", value: `${c.symbol}0.00` },
-          { label: "break_even_solvable", value: "0" }
-        );
-      }
-    } else {
-      rows.push(
-        { label: "break_even_on", value: "0" },
-        { label: "break_even_target_net", value: `${c.symbol}0.00` },
-        { label: "break_even_required_charge", value: `${c.symbol}0.00` },
-        { label: "break_even_solvable", value: "0" }
-      );
-    }
-
-    // --- Fee impact (always include fields; fill defaults when unused) ---
-    if (Boolean(s.sensitivityOn) && c.sensitivity) {
-      const sens = c.sensitivity;
-
-      const affectedFee =
-        sens.target === "all"
-          ? "all"
-          : sens.target === "stripe"
-          ? providerId === "stripe"
-            ? "stripe"
-            : "provider"
-          : sens.target === "fx"
-          ? "fx"
-          : "platform";
-
-      rows.push(
-        { label: "fee_impact_on", value: "1" },
-        { label: "fee_impact_affected_fee", value: affectedFee },
-        { label: "fee_impact_delta_pct", value: `${Number(sens.deltaPct).toFixed(2)}` },
-        { label: "fee_impact_base_net", value: `${c.symbol}${Number(sens.baseNet).toFixed(2)}` },
-        { label: "fee_impact_net_up", value: `${c.symbol}${Number(sens.netUp).toFixed(2)}` },
-        { label: "fee_impact_net_down", value: `${c.symbol}${Number(sens.netDown).toFixed(2)}` }
-      );
-    } else {
-      rows.push(
-        { label: "fee_impact_on", value: "0" },
-        { label: "fee_impact_affected_fee", value: "off" },
-        { label: "fee_impact_delta_pct", value: "0" },
-        { label: "fee_impact_base_net", value: `${c.symbol}0.00` },
-        { label: "fee_impact_net_up", value: `${c.symbol}0.00` },
-        { label: "fee_impact_net_down", value: `${c.symbol}0.00` }
-      );
-    }
-
-    // --- Volume projections (always include inputs; include outputs if computed; else 0s) ---
-    const volumeOn = Boolean((s as any).volumeOn);
-    const volumeTxPerMonth = Number((s as any).volumeTxPerMonth ?? 0);
-    const volumeRefundRatePct = Number((s as any).volumeRefundRatePct ?? 0);
-    const volumeTiers = (((s as any).volumeTiers ?? []) as VolumeTier[]).filter(Boolean);
-
-    rows.push(
-      { label: "volume_on", value: volumeOn ? "1" : "0" },
-      { label: "volume_tx_per_month", value: String(Number.isFinite(volumeTxPerMonth) ? Math.round(volumeTxPerMonth) : 0) },
-      { label: "volume_refund_rate_pct", value: `${Number.isFinite(volumeRefundRatePct) ? volumeRefundRatePct.toFixed(2) : "0.00"}` },
-      { label: "volume_tiers_json", value: JSON.stringify(volumeTiers ?? []) }
-    );
-
-    // Keep monthly outputs stable even when off/incomplete
-    const vol = (c as any).volume as ReturnType<typeof computeVolumeProjections> | null;
-    if (vol) {
-      rows.push(
-        { label: "volume_monthly_gross", value: `${vol.symbol}${vol.monthlyGross.toFixed(2)}` },
-        { label: "volume_monthly_provider_fee", value: `${vol.symbol}${vol.monthlyProviderFee.toFixed(2)}` },
-        { label: "volume_monthly_fx_fee", value: `${vol.symbol}${vol.monthlyFxFee.toFixed(2)}` },
-        { label: "volume_monthly_platform_fee", value: `${vol.symbol}${vol.monthlyPlatformFee.toFixed(2)}` },
-        { label: "volume_monthly_net_before_refunds", value: `${vol.symbol}${vol.monthlyNetBeforeRefunds.toFixed(2)}` },
-        { label: "volume_monthly_refund_loss", value: `${vol.symbol}${vol.monthlyRefundLoss.toFixed(2)}` },
-        { label: "volume_monthly_net_after_refunds", value: `${vol.symbol}${vol.monthlyNetAfterRefunds.toFixed(2)}` }
-      );
-    } else {
-      rows.push(
-        { label: "volume_monthly_gross", value: `${c.symbol}0.00` },
-        { label: "volume_monthly_provider_fee", value: `${c.symbol}0.00` },
-        { label: "volume_monthly_fx_fee", value: `${c.symbol}0.00` },
-        { label: "volume_monthly_platform_fee", value: `${c.symbol}0.00` },
-        { label: "volume_monthly_net_before_refunds", value: `${c.symbol}0.00` },
-        { label: "volume_monthly_refund_loss", value: `${c.symbol}0.00` },
-        { label: "volume_monthly_net_after_refunds", value: `${c.symbol}0.00` }
-      );
-    }
-
-    return rows;
+    // active scenario rows (used by ActionsBar for Copy breakdown + CSV export)
+    return buildCsvRowsForScenario({
+      computed: activeComputed,
+      state: active.state,
+      scenarioName: active.name,
+    });
   }, [activeComputed, active.state, active.name]);
+
+  // ✅ NEW: workbook sheets (used by ActionsBar to export ONE workbook with one sheet per scenario)
+  const workbookSheets = useMemo((): WorkbookSheet[] => {
+    // If you're rendering server-side, ActionsBar can still work (it only uses this client-side on click)
+    // but we keep URLs empty if window is missing.
+    return computedByScenario.map((c) => {
+      const scId = c.scenario.id;
+      const sheetUrl = (scenarioUrls as any)?.[scId] ?? "";
+
+      const sheetRows = buildCsvRowsForScenario({
+        computed: c,
+        state: c.scenario.state,
+        scenarioName: c.scenario.name,
+      });
+
+      return {
+        name: c.scenario.name,
+        shareUrl: sheetUrl,
+        csvRows: sheetRows,
+      };
+    });
+  }, [computedByScenario, scenarioUrls]);
 
   const compareRows = useMemo(
     () =>
@@ -1590,8 +1635,8 @@ export function Calculator() {
 
   return (
     <div>
-      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
+<div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+  <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap md:flex-nowrap md:overflow-visible">
           {scenarios.map((s) => (
             <button
               key={s.id}
@@ -1636,7 +1681,7 @@ export function Calculator() {
           ) : null}
         </div>
 
-        <ActionsBar shareUrl={shareUrl} copyText={breakdownText} csvRows={csvRows} />
+        <ActionsBar shareUrl={shareUrl} copyText={breakdownText} csvRows={csvRows} workbookSheets={workbookSheets} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -1744,14 +1789,18 @@ export function Calculator() {
           }}
           // ✅ NEW: custom provider display label (only meaningful when providerId === "custom")
           customProviderLabel={((activeStateN as any).customProviderLabel ?? "") as string}
-          setCustomProviderLabel={(v: string) => updateActive({ customProviderLabel: String(v ?? "") } as any, { source: "user" })}
+          setCustomProviderLabel={(v: string) =>
+            updateActive({ customProviderLabel: String(v ?? "") } as any, { source: "user" })
+          }
           // ✅ provider overrides (InputsCard expects number | null setters)
           customProviderFeePercent={(activeStateN as any).customProviderFeePercent ?? null}
           setCustomProviderFeePercent={(n: number | null) =>
             updateActive({ customProviderFeePercent: n == null ? null : clampPct(n) } as any, { source: "user" })
           }
           customFixedFee={(activeStateN as any).customFixedFee ?? null}
-          setCustomFixedFee={(n: number | null) => updateActive({ customFixedFee: n == null ? null : clampMoneyLike(n) } as any, { source: "user" })}
+          setCustomFixedFee={(n: number | null) =>
+            updateActive({ customFixedFee: n == null ? null : clampMoneyLike(n) } as any, { source: "user" })
+          }
           // ✅ Volume Projections (tier-driven)
           volumeOn={Boolean((activeStateN as any).volumeOn)}
           setVolumeOn={(v) => {

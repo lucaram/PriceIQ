@@ -314,7 +314,7 @@ export function ContactCta() {
                   onClick={closeAndReset}
                   className="rounded-full border border-white/20 px-3 py-1 text-xs text-white/70 hover:bg-white/10 transition"
                 >
-                  Close
+                  X
                 </button>
               </div>
 

@@ -6,6 +6,16 @@ import posthog from "posthog-js";
 type CopiedKind = null | "link" | "breakdown" | "csv" | "xls";
 type CsvKV = Array<{ label: string; value: string }>;
 
+// ✅ Optional: if provided, Excel export becomes ONE workbook with one sheet per scenario.
+export type WorkbookSheet = {
+  /** Scenario name (used as worksheet name; sanitized + deduped) */
+  name: string;
+  /** Scenario-specific share URL (written into meta.share_url) */
+  shareUrl: string;
+  /** Scenario CSV KV rows */
+  csvRows: CsvKV;
+};
+
 function csvEscape(v: string) {
   const s = String(v ?? "");
   if (/[",\r\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
@@ -86,6 +96,7 @@ function buildVerticalCsv(rows: CsvKV, shareUrl: string) {
   const ordered: Array<{ label: string; value: string }> = [
     // Meta
     { label: "meta.exported_at_local", value: nowLocalStamp() },
+    { label: "meta.share_url", value: shareUrl || "" },
 
     // Context
     { label: "context.app", value: get("app", "PriceIQ") },
@@ -93,7 +104,7 @@ function buildVerticalCsv(rows: CsvKV, shareUrl: string) {
     { label: "context.provider_id", value: get("provider_id", "") },
     { label: "context.provider", value: get("provider", "") },
     { label: "context.product", value: get("product", "") },
-    { label: "context.custom_provider_label", value: get("custom_provider_label", "") },
+    { label: "context.custom_provider_label", value: get("custom_provider_label", "").trim() || "N/A" },
     { label: "context.region", value: get("region", "") },
     { label: "context.mode", value: get("mode", "") },
     { label: "context.tier", value: getOff("tier") },
@@ -219,9 +230,9 @@ function buildVerticalCsv(rows: CsvKV, shareUrl: string) {
   return "\uFEFF" + lines.join("\r\n");
 }
 
-function buildVerticalXls(rows: CsvKV, shareUrl: string) {
-  const csv = buildVerticalCsv(rows, shareUrl);
-  const lines = csv.replace(/^\uFEFF/, "").split(/\r?\n/).filter(Boolean);
+function parseVerticalCsvToPairs(csvWithBom: string): CsvKV {
+  const csv = csvWithBom.replace(/^\uFEFF/, "");
+  const lines = csv.split(/\r?\n/).filter(Boolean);
   const dataLines = lines.slice(1);
 
   const pairs: CsvKV = dataLines.map((ln) => {
@@ -239,38 +250,51 @@ function buildVerticalXls(rows: CsvKV, shareUrl: string) {
     return { label: unq(label), value: unq(value) };
   });
 
-  const stamp = nowLocalStamp();
-  const worksheetName = "PriceIQ Breakdown";
+  return pairs;
+}
 
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<?mso-application progid="Excel.Sheet"?>
-<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
- xmlns:o="urn:schemas-microsoft-com:office:office"
- xmlns:x="urn:schemas-microsoft-com:office:excel"
- xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
- xmlns:html="http://www.w3.org/TR/REC-html40">
-  <Styles>
-    <Style ss:ID="sHeader">
-      <Alignment ss:Horizontal="Left" ss:Vertical="Center"/>
-      <Font ss:Bold="1"/>
-      <Interior ss:Color="#EDEDED" ss:Pattern="Solid"/>
-    </Style>
+function sanitizeWorksheetName(name: string) {
+  // Excel worksheet rules:
+  // - max 31 chars
+  // - cannot contain: : \ / ? * [ ]
+  // - cannot be empty
+  let n = String(name ?? "").trim();
+  if (!n) n = "Sheet";
+  n = n.replace(/[:\\\/\?\*\[\]]/g, " ").replace(/\s+/g, " ").trim();
+  if (!n) n = "Sheet";
+  if (n.length > 31) n = n.slice(0, 31).trim();
+  return n || "Sheet";
+}
 
-    <Style ss:ID="sLabel">
-      <Alignment ss:Horizontal="Left" ss:Vertical="Center"/>
-      <Font ss:Bold="1"/>
-    </Style>
+function dedupeWorksheetNames(names: string[]) {
+  const used = new Set<string>();
+  const out: string[] = [];
 
-    <Style ss:ID="sValueRight">
-      <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>
-    </Style>
+  for (const raw of names) {
+    let base = sanitizeWorksheetName(raw);
+    let n = base;
+    let i = 2;
 
-    <Style ss:ID="sMeta">
-      <Alignment ss:Horizontal="Left" ss:Vertical="Center"/>
-      <Font ss:Italic="1"/>
-    </Style>
-  </Styles>
+    // Ensure uniqueness
+    while (used.has(n)) {
+      const suffix = ` ${i}`;
+      const maxLen = 31 - suffix.length;
+      const clipped = base.length > maxLen ? base.slice(0, maxLen).trim() : base;
+      n = `${clipped}${suffix}`;
+      i++;
+    }
 
+    used.add(n);
+    out.push(n);
+  }
+
+  return out;
+}
+
+function buildWorksheetXml(params: { worksheetName: string; pairs: CsvKV; stamp: string }) {
+  const { worksheetName, pairs, stamp } = params;
+
+  return `
   <Worksheet ss:Name="${xmlEscape(worksheetName)}">
     <Table>
       <Column ss:AutoFitWidth="1" ss:Width="260"/>
@@ -299,7 +323,83 @@ function buildVerticalXls(rows: CsvKV, shareUrl: string) {
         })
         .join("\n")}
     </Table>
-  </Worksheet>
+  </Worksheet>`;
+}
+
+/**
+ * ✅ Multi-sheet Excel XML workbook:
+ * - If `sheets` is provided and has length > 0, builds ONE workbook with one sheet per scenario
+ * - Otherwise falls back to single-sheet workbook based on (rows, shareUrl)
+ */
+function buildXlsWorkbook(
+  params:
+    | { shareUrl: string; rows: CsvKV; sheets?: undefined }
+    | { shareUrl: string; rows: CsvKV; sheets: WorkbookSheet[] }
+) {
+  const stamp = nowLocalStamp();
+
+  const styles = `
+  <Styles>
+    <Style ss:ID="sHeader">
+      <Alignment ss:Horizontal="Left" ss:Vertical="Center"/>
+      <Font ss:Bold="1"/>
+      <Interior ss:Color="#EDEDED" ss:Pattern="Solid"/>
+    </Style>
+
+    <Style ss:ID="sLabel">
+      <Alignment ss:Horizontal="Left" ss:Vertical="Center"/>
+      <Font ss:Bold="1"/>
+    </Style>
+
+    <Style ss:ID="sValueRight">
+      <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>
+    </Style>
+
+    <Style ss:ID="sMeta">
+      <Alignment ss:Horizontal="Left" ss:Vertical="Center"/>
+      <Font ss:Italic="1"/>
+    </Style>
+  </Styles>`;
+
+  // Multi-sheet path
+  const maybeSheets = (params as any).sheets as WorkbookSheet[] | undefined;
+  if (Array.isArray(maybeSheets) && maybeSheets.length > 0) {
+    const sheetNames = dedupeWorksheetNames(maybeSheets.map((s) => s?.name ?? "Scenario"));
+    const worksheetsXml = maybeSheets
+      .map((sheet, idx) => {
+        const verticalCsv = buildVerticalCsv(sheet.csvRows, sheet.shareUrl);
+        const pairs = parseVerticalCsvToPairs(verticalCsv);
+        return buildWorksheetXml({ worksheetName: sheetNames[idx], pairs, stamp });
+      })
+      .join("\n");
+
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+  ${styles}
+  ${worksheetsXml}
+</Workbook>`;
+  }
+
+  // Single-sheet fallback
+  const csv = buildVerticalCsv(params.rows, params.shareUrl);
+  const pairs = parseVerticalCsvToPairs(csv);
+  const worksheetName = "PriceIQ Breakdown";
+  const worksheetXml = buildWorksheetXml({ worksheetName, pairs, stamp });
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+  ${styles}
+  ${worksheetXml}
 </Workbook>`;
 }
 
@@ -382,8 +482,18 @@ const EVENTS = {
   EXPORT_EXCEL: "calc_export_excel",
 } as const;
 
-export function ActionsBar(props: { shareUrl: string; copyText: string; csvRows: CsvKV }) {
-  const { shareUrl, copyText, csvRows } = props;
+export function ActionsBar(props: {
+  shareUrl: string;
+  copyText: string;
+  csvRows: CsvKV;
+
+  /**
+   * ✅ If you pass this from Calculator, Excel export becomes:
+   * ONE workbook (.xls) with one sheet per scenario.
+   */
+  workbookSheets?: WorkbookSheet[];
+}) {
+  const { shareUrl, copyText, csvRows, workbookSheets } = props;
 
   const [copied, setCopied] = useState<CopiedKind>(null);
   const copiedTimerRef = useRef<number | null>(null);
@@ -484,7 +594,12 @@ export function ActionsBar(props: { shareUrl: string; copyText: string; csvRows:
   }
 
   const csvWithBom = useMemo(() => buildVerticalCsv(csvRows, shareUrl), [csvRows, shareUrl]);
-  const xlsXml = useMemo(() => buildVerticalXls(csvRows, shareUrl), [csvRows, shareUrl]);
+
+  // ✅ Excel: if workbookSheets provided -> multi-sheet workbook, else single sheet
+  const xlsXml = useMemo(() => {
+    const sheets = Array.isArray(workbookSheets) && workbookSheets.length > 0 ? workbookSheets : undefined;
+    return buildXlsWorkbook({ shareUrl, rows: csvRows, sheets } as any);
+  }, [csvRows, shareUrl, workbookSheets]);
 
   function downloadCsv() {
     safeCapture(EVENTS.EXPORT_CSV, {
@@ -530,16 +645,19 @@ export function ActionsBar(props: { shareUrl: string; copyText: string; csvRows:
   }
 
   function downloadXls() {
+    const sheetCount = Array.isArray(workbookSheets) && workbookSheets.length > 0 ? workbookSheets.length : 1;
+
     safeCapture(EVENTS.EXPORT_EXCEL, {
       ...coreProps,
       stage: "attempt",
       bytes: xlsXml.length,
       format: "xls",
+      sheet_count: sheetCount,
     });
 
     try {
       const stamp = nowLocalStamp();
-      const filename = `PriceIQBreakdown_${stamp}.xls`;
+      const filename = sheetCount > 1 ? `PriceIQWorkbook_${stamp}.xls` : `PriceIQBreakdown_${stamp}.xls`;
 
       const blob = new Blob([xlsXml], { type: "application/vnd.ms-excel;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
@@ -560,6 +678,7 @@ export function ActionsBar(props: { shareUrl: string; copyText: string; csvRows:
         success: true,
         bytes: xlsXml.length,
         format: "xls",
+        sheet_count: sheetCount,
       });
     } catch {
       safeCapture(EVENTS.EXPORT_EXCEL, {
@@ -568,6 +687,7 @@ export function ActionsBar(props: { shareUrl: string; copyText: string; csvRows:
         success: false,
         bytes: xlsXml.length,
         format: "xls",
+        sheet_count: sheetCount,
       });
     }
   }
@@ -580,47 +700,44 @@ export function ActionsBar(props: { shareUrl: string; copyText: string; csvRows:
     "border-emerald-400/40 bg-emerald-500/20 text-emerald-200 shadow-[0_0_0_1px_rgba(16,185,129,0.35)]";
 
   const btnClass = (kind: CopiedKind) =>
-    [
-      "md:" + baseBtnDesktop,
-      baseBtnMobile,
-      copied === kind ? successBtn : normalBtn,
-      "whitespace-nowrap",
-    ].join(" ");
+    ["md:" + baseBtnDesktop, baseBtnMobile, copied === kind ? successBtn : normalBtn, "whitespace-nowrap"].join(" ");
 
   return (
-    <div
-      className={[
-        "md:flex md:flex-wrap md:items-center md:gap-2",
-        "flex items-center gap-2 overflow-x-auto md:overflow-visible",
-        "flex-nowrap md:flex-wrap",
-        "[-webkit-overflow-scrolling:touch]",
-        "pb-0.5",
-      ].join(" ")}
-    >
+  <div className={["flex items-center justify-start md:justify-end gap-2", "w-full"].join(" ")}>
+      {/* Copy link (restore old look/feel: always visible) */}
       <button type="button" onClick={() => copyToClipboard(shareUrl, "link")} className={btnClass("link")}>
-        <span className="md:inline hidden">{copied === "link" ? "✓ Copied" : "Copy link to reuse"}</span>
-        {/* ✅ mobile label updated */}
-        <span className="md:hidden inline">{copied === "link" ? "✓ Copied" : "Copy link"}</span>
+        <span className="md:inline hidden">{copied === "link" ? "✓ Copied" : "Copy link"}</span>
+        <span className="md:hidden inline">{copied === "link" ? "✓" : "Link"}</span>
       </button>
 
-      <button
-        type="button"
-        onClick={() => copyToClipboard(copyText, "breakdown")}
-        className={btnClass("breakdown")}
-      >
-        <span className="md:inline hidden">{copied === "breakdown" ? "✓ Breakdown copied" : "Copy breakdown"}</span>
-        {/* ✅ mobile label updated */}
-        <span className="md:hidden inline">{copied === "breakdown" ? "✓ Copied" : "Copy breakdown"}</span>
+      {/* Copy breakdown */}
+      <button type="button" onClick={() => copyToClipboard(copyText, "breakdown")} className={btnClass("breakdown")}>
+        <span className="md:inline hidden">{copied === "breakdown" ? "✓ Copied" : "Copy breakdown"}</span>
+        <span className="md:hidden inline">{copied === "breakdown" ? "✓" : "Breakdown"}</span>
       </button>
 
+      {/* Download CSV */}
       <button type="button" onClick={downloadCsv} className={btnClass("csv")}>
         <span className="md:inline hidden">{copied === "csv" ? "✓ Downloaded" : "Download CSV"}</span>
-        <span className="md:hidden inline">{copied === "csv" ? "✓ CSV" : "CSV"}</span>
+        <span className="md:hidden inline">{copied === "csv" ? "✓" : "CSV"}</span>
       </button>
 
+      {/* Download Excel */}
       <button type="button" onClick={downloadXls} className={btnClass("xls")}>
-        <span className="md:inline hidden">{copied === "xls" ? "✓ Downloaded" : "Download Excel"}</span>
-        <span className="md:hidden inline">{copied === "xls" ? "✓ Excel" : "Excel"}</span>
+        <span className="md:inline hidden">
+          {copied === "xls"
+            ? "✓ Downloaded"
+            : Array.isArray(workbookSheets) && workbookSheets.length > 1
+            ? "Download Excel (all scenarios)"
+            : "Download Excel"}
+        </span>
+<span className="md:hidden inline">
+  {copied === "xls"
+    ? "✓"
+    : Array.isArray(workbookSheets) && workbookSheets.length > 1
+    ? "Excel (all scenarios)"
+    : "Excel"}
+</span>
       </button>
     </div>
   );
