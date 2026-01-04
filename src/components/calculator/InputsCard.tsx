@@ -28,6 +28,58 @@ function isValidDecimalInput(v: string) {
   return /^\d*(?:\.\d{0,2})?$/.test(v);
 }
 
+function stripCommas(s: string) {
+  return (s ?? "").replace(/,/g, "");
+}
+
+
+
+function formatWithThousands(raw: string) {
+  // Keep only digits + optional dot, and format integer part with commas.
+  // Preserve up to 2 decimals (your existing input policy).
+  const cleaned = stripCommas(raw);
+
+  // Allow transitional states like "" or "12."
+  if (cleaned === "" || cleaned === ".") return cleaned;
+
+  const [intPartRaw, decPartRaw] = cleaned.split(".");
+  const intPart = (intPartRaw ?? "").replace(/^0+(?=\d)/, ""); // trim leading zeros (but keep single 0)
+  const groupedInt = (intPart === "" ? "0" : intPart).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+  if (decPartRaw === undefined) return groupedInt;
+
+  // Keep the dot if user typed it, and keep up to 2 decimals (even if empty like "12.")
+  const dec = decPartRaw.slice(0, 2);
+  return `${groupedInt}.${dec}`;
+}
+
+/**
+ * Reformat while keeping caret roughly where the user expects.
+ * (Keeps the same count of digits to the left of the caret.)
+ */
+function reformatWithCaret(prevText: string, nextRawText: string, caretPos: number) {
+  const prev = prevText ?? "";
+  const nextRaw = nextRawText ?? "";
+
+  // Count digits (and dot) to the left of caret in the *raw* next string (commas ignored).
+  const leftRaw = stripCommas(nextRaw.slice(0, caretPos));
+  const targetIndexTokenCount = leftRaw.length;
+
+  const formatted = formatWithThousands(nextRaw);
+
+  // Find caret position in formatted string that matches the token count on the left
+  let seen = 0;
+  let newCaret = 0;
+  while (newCaret < formatted.length && seen < targetIndexTokenCount) {
+    const ch = formatted[newCaret];
+    if (/[0-9.]/.test(ch)) seen++;
+    newCaret++;
+  }
+
+  return { formatted, newCaret };
+}
+
+
 /** Gold hairline divider (same as ResultsCard) */
 function GoldDivider() {
   return (
@@ -311,12 +363,17 @@ function presetBucketLabel(args: {
 }
 
 function useNumberTextSync(value: number) {
-  const [text, setText] = useState<string>(() => String(value));
+  const [text, setText] = useState<string>(() =>
+    formatWithThousands(String(value))
+  );
+
   useEffect(() => {
-    setText(String(value));
+    setText(formatWithThousands(String(value)));
   }, [value]);
+
   return { text, setText };
 }
+
 
 function useNullableNumberTextSync(value: number | null) {
   const [text, setText] = useState<string>(() => (value === null ? "" : String(value)));
@@ -333,39 +390,64 @@ function MoneyField(props: { value: number; onChange: (n: number) => void; disab
   return (
     <FieldShell disabled={disabled}>
       <input
-        inputMode="decimal"
-        value={text}
-        disabled={disabled}
-        onChange={(e) => {
-          const raw = e.target.value;
-          if (!isValidDecimalInput(raw)) return;
-          setText(raw);
-          if (raw === "") return;
-          const n = Number(raw);
-          if (Number.isFinite(n)) onChange(n);
-        }}
-        onBlur={() => {
-          const raw = text.trim();
-          if (raw === "") {
-            setText(String(value));
-            return;
-          }
+  inputMode="decimal"
+  value={text}
+  disabled={disabled}
+  onChange={(e) => {
+    const raw = e.target.value;
 
-          const normalized = raw.endsWith(".") ? raw.slice(0, -1) : raw;
-          const n = Number(normalized);
+    // Allow digits, commas, dot only
+    if (!/^[0-9,]*\.?[0-9,]*$/.test(raw)) return;
 
-          if (!Number.isFinite(n)) {
-            setText(String(value));
-            return;
-          }
+    // Validate numeric meaning (max 2 decimals) ignoring commas
+    const stripped = stripCommas(raw);
+    if (!isValidDecimalInput(stripped)) return;
 
-          const fixed = Number(n.toFixed(2));
-          setText(String(fixed));
-          onChange(fixed);
-        }}
-        className="relative z-10 w-full bg-transparent px-3.5 text-[13px] text-white outline-none disabled:cursor-not-allowed"
-        aria-label={ariaLabel}
-      />
+    const caret = e.target.selectionStart ?? raw.length;
+    const { formatted, newCaret } = reformatWithCaret(text, raw, caret);
+
+    setText(formatted);
+
+    // Update numeric state as user types (skip transitional "", "12.")
+    if (stripped === "" || stripped.endsWith(".")) return;
+    const n = Number(stripped);
+    if (Number.isFinite(n)) onChange(n);
+
+    // Restore caret after React paints
+    requestAnimationFrame(() => {
+      try {
+        e.target.setSelectionRange(newCaret, newCaret);
+      } catch {
+        // ignore
+      }
+    });
+  }}
+  onBlur={() => {
+    const raw = stripCommas(text).trim();
+
+    if (raw === "") {
+      setText(formatWithThousands(String(value)));
+      return;
+    }
+
+    const normalized = raw.endsWith(".") ? raw.slice(0, -1) : raw;
+    const n = Number(normalized);
+
+    if (!Number.isFinite(n)) {
+      setText(formatWithThousands(String(value)));
+      return;
+    }
+
+    const fixed = Number(n.toFixed(2));
+    onChange(fixed);
+
+    // Show formatted with commas
+    setText(formatWithThousands(String(fixed)));
+  }}
+  className="relative z-10 w-full bg-transparent px-3.5 text-[13px] text-white outline-none disabled:cursor-not-allowed"
+  aria-label={ariaLabel}
+/>
+
     </FieldShell>
   );
 }
@@ -3011,7 +3093,8 @@ const affectedFeeTip = (
 
                               <div className="grid gap-3">
                                 {(volumeTiers ?? []).map((t, idx) => {
-                                  const priceDraft = tierPriceTextById[t.id] ?? String(Number.isFinite(t.price) ? t.price : 0);
+const priceDraft =
+  tierPriceTextById[t.id] ?? formatWithThousands(String(Number.isFinite(t.price) ? t.price : 0));
 
                                   return (
                                     <div
@@ -3070,53 +3153,76 @@ const affectedFeeTip = (
                                           />
 
                                           <FieldShell disabled={!volumeOn}>
-                                            <input
-                                              inputMode="decimal"
-                                              value={priceDraft}
-                                              disabled={!volumeOn}
-                                              onFocus={() => setEditingTierPriceId(t.id)}
-                                              onChange={(e) => {
-                                                phFirstTouch("volume");
-                                                const raw = e.target.value;
-                                                if (!isValidDecimalInput(raw)) return;
+                                           <input
+  inputMode="decimal"
+  value={priceDraft}
+  disabled={!volumeOn}
+  onFocus={() => setEditingTierPriceId(t.id)}
+  onChange={(e) => {
+    phFirstTouch("volume");
+    const raw = e.target.value;
 
-                                                setTierPriceTextById((prev) => ({ ...prev, [t.id]: raw }));
+    // Allow digits, commas, dot only
+    if (!/^[0-9,]*\.?[0-9,]*$/.test(raw)) return;
 
-                                                const n = parseLiveDecimal(raw);
-                                                if (n === null) return;
+    const stripped = stripCommas(raw);
+    if (!isValidDecimalInput(stripped)) return;
 
-                                                phCapture("inputs_volume_tier_price_changed", { id: t.id, value: n }, 350);
-                                                clearPreset();
-                                                updateTier(t.id, { price: Math.max(0, n) });
-                                              }}
-                                              onBlur={() => {
-                                                setEditingTierPriceId(null);
+    const caret = e.target.selectionStart ?? raw.length;
+    const { formatted, newCaret } = reformatWithCaret(priceDraft, raw, caret);
 
-                                                const raw = (tierPriceTextById[t.id] ?? "").trim();
-                                                if (raw === "") {
-                                                  setTierPriceTextById((prev) => ({
-                                                    ...prev,
-                                                    [t.id]: String(Number.isFinite(t.price) ? t.price : 0),
-                                                  }));
-                                                  return;
-                                                }
+    // store formatted draft
+    setTierPriceTextById((prev) => ({ ...prev, [t.id]: formatted }));
 
-                                                const n = parseLiveDecimal(raw);
-                                                if (n === null) {
-                                                  setTierPriceTextById((prev) => ({
-                                                    ...prev,
-                                                    [t.id]: String(Number.isFinite(t.price) ? t.price : 0),
-                                                  }));
-                                                  return;
-                                                }
+    const n = parseLiveDecimal(stripped);
+    if (n === null) {
+      requestAnimationFrame(() => {
+        try {
+          e.target.setSelectionRange(newCaret, newCaret);
+        } catch {}
+      });
+      return;
+    }
 
-                                                const fixed = Number(Math.max(0, n).toFixed(2));
-                                                setTierPriceTextById((prev) => ({ ...prev, [t.id]: String(fixed) }));
-                                                updateTier(t.id, { price: fixed });
-                                              }}
-                                              className="relative z-10 w-full bg-transparent px-3.5 text-[13px] text-white outline-none placeholder:text-white/35 disabled:cursor-not-allowed"
-                                              aria-label="Tier price"
-                                            />
+    phCapture("inputs_volume_tier_price_changed", { id: t.id, value: n }, 350);
+    clearPreset();
+    updateTier(t.id, { price: Math.max(0, n) });
+
+    // restore caret
+    requestAnimationFrame(() => {
+      try {
+        e.target.setSelectionRange(newCaret, newCaret);
+      } catch {}
+    });
+  }}
+  onBlur={() => {
+    setEditingTierPriceId(null);
+
+    const raw = stripCommas(tierPriceTextById[t.id] ?? "").trim();
+
+    if (raw === "") {
+      const fallback = formatWithThousands(String(Number.isFinite(t.price) ? t.price : 0));
+      setTierPriceTextById((prev) => ({ ...prev, [t.id]: fallback }));
+      return;
+    }
+
+    const n = parseLiveDecimal(raw);
+    if (n === null) {
+      const fallback = formatWithThousands(String(Number.isFinite(t.price) ? t.price : 0));
+      setTierPriceTextById((prev) => ({ ...prev, [t.id]: fallback }));
+      return;
+    }
+
+    const fixed = Number(Math.max(0, n).toFixed(2));
+    updateTier(t.id, { price: fixed });
+
+    // store formatted committed value
+    setTierPriceTextById((prev) => ({ ...prev, [t.id]: formatWithThousands(String(fixed)) }));
+  }}
+  className="relative z-10 w-full bg-transparent px-3.5 text-[13px] text-white outline-none placeholder:text-white/35 disabled:cursor-not-allowed"
+  aria-label="Tier price"
+/>
+
                                           </FieldShell>
                                         </div>
 

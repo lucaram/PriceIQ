@@ -89,6 +89,16 @@ function labelSensitivityTarget(t: SensitivityTarget, providerFeeLabel: string) 
   return "Platform %";
 }
 
+  // ✅ Format money like InputsCard price (1,000.00)
+  const formatMoney = (n: number) => {
+    if (!Number.isFinite(n)) return "—";
+    return n.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
+
 /**
  * Optional UI hint:
  * if the selected fee is currently 0%, then a ±% drift won't move net.
@@ -244,9 +254,9 @@ function isStripeProvider(providerLabel?: string) {
 }
 
 function providerFeeLabel(providerLabel?: string, _productLabel?: string) {
-  const brand = providerBrandFromLabel(providerLabel);
-  return `${brand} fee`;
+  return providerBrandFromLabel(providerLabel);
 }
+
 
 function providerSensitivityLabel(providerLabel?: string) {
   return providerBrandFromLabel(providerLabel || "Provider");
@@ -1209,9 +1219,10 @@ function formatProviderFeeLabel(params: {
             {volume.tiersCount} tier{volume.tiersCount === 1 ? "" : "s"} • Blended ticket{" "}
           </span>
           <span className="font-semibold text-white/85">
-            {symbol}
-            {volume.blendedTicket.toFixed(2)}
-          </span>
+  {symbol}
+  {formatMoney(volume.blendedTicket)}
+</span>
+
           <span className="text-white/60"> • Blended FX </span>
           <span className="font-semibold text-white/85">{volume.blendedFxPct.toFixed(2)}%</span>
           {volume.vatPct > 0 ? (
@@ -1403,10 +1414,11 @@ function formatProviderFeeLabel(params: {
 
                       <div className="mt-2 text-[12px] text-white/65">
                         Target net:{" "}
-                        <span className="font-semibold text-white/85">
-                          {symbol}
-                          {breakEven.targetNet.toFixed(2)}
-                        </span>
+                       <span className="font-semibold text-white/85">
+  {symbol}
+  {formatMoney(breakEven.targetNet)}
+</span>
+
                       </div>
 
                       <div className="mt-3">
@@ -1552,12 +1564,13 @@ label={
     </span>
 
     {/* Line 2: rate-card breakdown */}
-    {providerFeePercentUsed != null && providerFixedFeeUsed != null ? (
-      <span className="mt-0.5 text-[11px] font-medium text-white/45">
-        ({providerFeePercentUsed.toFixed(2)}% + {symbol}
-        {providerFixedFeeUsed.toFixed(2)})
-      </span>
-    ) : null}
+{gross > 1e-9 && providerFeePercentUsed != null && providerFixedFeeUsed != null ? (
+  <span className="mt-0.5 text-[11px] font-medium text-white/45">
+    ({providerFeePercentUsed.toFixed(2)}% + {symbol}
+    {providerFixedFeeUsed.toFixed(2)})
+  </span>
+) : null}
+
   </span>
 }
 
@@ -1742,9 +1755,10 @@ label={
                     <div className="mt-2 text-[12px] text-white/65">
                       Target net:{" "}
                       <span className="font-semibold text-white/85">
-                        {symbol}
-                        {breakEven.targetNet.toFixed(2)}
-                      </span>
+  {symbol}
+  {formatMoney(breakEven.targetNet)}
+</span>
+
                     </div>
 
                     <div className="mt-3">

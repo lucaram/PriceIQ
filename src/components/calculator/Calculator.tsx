@@ -112,6 +112,9 @@ function applyRoundingAndPsych(params: { gross: number; roundingStep: RoundingSt
 /**
  * ✅ Stripe fee computation (with optional overrides from CalcState)
  */
+/**
+ * ✅ Stripe fee computation (with optional overrides from CalcState)
+ */
 function computeFeesFromGross_STRIPE(s: CalcState, gross: number) {
   const options = PRICING[s.region];
   const selected = options.find((o) => o.id === s.pricingId) ?? options[0];
@@ -129,17 +132,24 @@ function computeFeesFromGross_STRIPE(s: CalcState, gross: number) {
 
   const plat = (s.platformFeePercent ?? 0) / 100;
 
-  const providerFee = gross * p + fixedUsed;
-  const fxFee = gross * fxp;
-  const platformFee = s.platformFeeBase === "afterStripe" ? (gross - providerFee) * plat : gross * plat;
+  // ✅ EDGE CASE FIX:
+  // If customer charge is 0 (or invalid/negative), do NOT apply fixed fee.
+  const grossN = Number(gross);
+  const hasCharge = Number.isFinite(grossN) && grossN > 0;
 
-  const netBeforeVat = gross - providerFee - fxFee - platformFee;
+  const providerFee = hasCharge ? grossN * p + fixedUsed : 0;
+  const fxFee = hasCharge ? grossN * fxp : 0;
+
+  const platformBaseAmount = s.platformFeeBase === "afterStripe" ? Math.max(0, grossN - providerFee) : grossN;
+  const platformFee = hasCharge ? platformBaseAmount * plat : 0;
+
+  const netBeforeVat = (Number.isFinite(grossN) ? grossN : 0) - providerFee - fxFee - platformFee;
 
   const vatPercent = Number(s.vatPercent ?? 0);
   const vatP = vatPercent / 100;
 
   // VAT included in gross
-  const vatAmount = vatP > 0 ? gross * (vatP / (1 + vatP)) : 0;
+  const vatAmount = hasCharge && vatP > 0 ? grossN * (vatP / (1 + vatP)) : 0;
   const netAfterVat = netBeforeVat - vatAmount;
 
   return {
@@ -158,6 +168,7 @@ function computeFeesFromGross_STRIPE(s: CalcState, gross: number) {
     fixedUsed,
   };
 }
+
 
 function computeForState_STRIPE(s0: CalcState) {
   const s = normalizeState(s0);
@@ -520,21 +531,31 @@ function computeSensitivity(s0: CalcState) {
   const baseStripePct = customPct != null ? clampPct(customPct) : Number(selected.percent) || 0;
 
   function computeNetWithPercents(params: { stripePercent: number; fxPercent: number; platformPercent: number }) {
-    const stripeP = params.stripePercent / 100;
-    const fxP = params.fxPercent / 100;
-    const platP = params.platformPercent / 100;
+  const gross = customerCharge0;
 
-    const customFixed = (s as any).customFixedFee as number | null;
-    const fixedUsed = customFixed != null ? clampMoneyLike(customFixed) : selected.fixed;
+  const hasCharge = Number.isFinite(gross) && gross > 0;
 
-    const stripeFee = customerCharge0 * stripeP + fixedUsed;
-    const fxFee = customerCharge0 * fxP;
-    const platformFee =
-      s.platformFeeBase === "afterStripe" ? (customerCharge0 - stripeFee) * platP : customerCharge0 * platP;
+  const stripeP = params.stripePercent / 100;
+  const fxP = params.fxPercent / 100;
+  const platP = params.platformPercent / 100;
 
-    const netBeforeVat = customerCharge0 - stripeFee - fxFee - platformFee;
-    return roundMoney(netBeforeVat);
-  }
+  const customFixed = (s as any).customFixedFee as number | null;
+  const fixedUsed = customFixed != null ? clampMoneyLike(customFixed) : selected.fixed;
+
+  // ✅ EDGE CASE FIX: no fixed fee if gross is 0
+  const stripeFee = hasCharge ? gross * stripeP + fixedUsed : 0;
+  const fxFee = hasCharge ? gross * fxP : 0;
+
+  const platformFee = hasCharge
+    ? s.platformFeeBase === "afterStripe"
+      ? Math.max(0, gross - stripeFee) * platP
+      : gross * platP
+    : 0;
+
+  const netBeforeVat = (Number.isFinite(gross) ? gross : 0) - stripeFee - fxFee - platformFee;
+  return roundMoney(netBeforeVat);
+}
+
 
   const baseFxPct = clampPct(Number(s.fxPercent ?? 0));
   const basePlatPct = clampPct(Number(s.platformFeePercent ?? 0));
@@ -637,8 +658,12 @@ function computeVolumeProjections(
     const tierTx = txPerMonth * (sharePct / 100);
     const tierGross = tierTx * price;
 
-    const providerFeePerTx = price * (providerPct / 100) + providerFixed;
-    const fxFeePerTx = price * (fxPct / 100);
+ // ✅ EDGE CASE FIX: if price is 0, don't apply fixed fee
+const hasPrice = Number.isFinite(price) && price > 0;
+
+const providerFeePerTx = hasPrice ? price * (providerPct / 100) + providerFixed : 0;
+const fxFeePerTx = hasPrice ? price * (fxPct / 100) : 0;
+
 
     const platformBasePerTx = platformFeeBase === "gross" ? price : Math.max(0, price - providerFeePerTx);
     const platformFeePerTx = platformBasePerTx * (platformFeePercent / 100);
